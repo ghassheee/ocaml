@@ -19,7 +19,7 @@ let parse' in_channel   =   (* in_channel -> command list *)
 
 let process' ()         = 
     let cmds                = parse' stdin in 
-    List.iter print_eval cmds
+    () (* List.iter print_eval cmds *)
 
 (* interpreter *) 
 let rec parse_error s = print_endline s; flush stdout ;; 

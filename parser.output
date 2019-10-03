@@ -1,0 +1,323 @@
+   0  $accept : %entry% $end
+
+   1  toplevel :
+   2           | toplevel block
+
+   3  block : EOF
+   4        | Command HOGE
+   5        | Command SEMI block
+
+   6  Command : Term
+
+   7  Term : AppTerm
+   8       | IF Term THEN Term ELSE Term
+
+   9  AppTerm : ATerm
+  10          | SUCC ATerm
+  11          | PRED ATerm
+  12          | ISZERO ATerm
+
+  13  ATerm : LPAREN Term RPAREN
+  14        | TRUE
+  15        | FALSE
+  16        | INTV
+
+  17  %entry% : '\001' toplevel
+
+state 0
+	$accept : . %entry% $end  (0)
+
+	'\001'  shift 1
+	.  error
+
+	%entry%  goto 2
+
+
+state 1
+	%entry% : '\001' . toplevel  (17)
+	toplevel : .  (1)
+
+	.  reduce 1
+
+	toplevel  goto 3
+
+
+state 2
+	$accept : %entry% . $end  (0)
+
+	$end  accept
+
+
+state 3
+	toplevel : toplevel . block  (2)
+	%entry% : '\001' toplevel .  (17)
+
+	IF  shift 4
+	TRUE  shift 5
+	FALSE  shift 6
+	SUCC  shift 7
+	PRED  shift 8
+	ISZERO  shift 9
+	INTV  shift 10
+	EOF  shift 11
+	LPAREN  shift 12
+	$end  reduce 17
+
+	block  goto 13
+	Command  goto 14
+	Term  goto 15
+	AppTerm  goto 16
+	ATerm  goto 17
+
+
+state 4
+	Term : IF . Term THEN Term ELSE Term  (8)
+
+	IF  shift 4
+	TRUE  shift 5
+	FALSE  shift 6
+	SUCC  shift 7
+	PRED  shift 8
+	ISZERO  shift 9
+	INTV  shift 10
+	LPAREN  shift 12
+	.  error
+
+	Term  goto 18
+	AppTerm  goto 16
+	ATerm  goto 17
+
+
+state 5
+	ATerm : TRUE .  (14)
+
+	.  reduce 14
+
+
+state 6
+	ATerm : FALSE .  (15)
+
+	.  reduce 15
+
+
+state 7
+	AppTerm : SUCC . ATerm  (10)
+
+	TRUE  shift 5
+	FALSE  shift 6
+	INTV  shift 10
+	LPAREN  shift 12
+	.  error
+
+	ATerm  goto 19
+
+
+state 8
+	AppTerm : PRED . ATerm  (11)
+
+	TRUE  shift 5
+	FALSE  shift 6
+	INTV  shift 10
+	LPAREN  shift 12
+	.  error
+
+	ATerm  goto 20
+
+
+state 9
+	AppTerm : ISZERO . ATerm  (12)
+
+	TRUE  shift 5
+	FALSE  shift 6
+	INTV  shift 10
+	LPAREN  shift 12
+	.  error
+
+	ATerm  goto 21
+
+
+state 10
+	ATerm : INTV .  (16)
+
+	.  reduce 16
+
+
+state 11
+	block : EOF .  (3)
+
+	.  reduce 3
+
+
+state 12
+	ATerm : LPAREN . Term RPAREN  (13)
+
+	IF  shift 4
+	TRUE  shift 5
+	FALSE  shift 6
+	SUCC  shift 7
+	PRED  shift 8
+	ISZERO  shift 9
+	INTV  shift 10
+	LPAREN  shift 12
+	.  error
+
+	Term  goto 22
+	AppTerm  goto 16
+	ATerm  goto 17
+
+
+state 13
+	toplevel : toplevel block .  (2)
+
+	.  reduce 2
+
+
+state 14
+	block : Command . HOGE  (4)
+	block : Command . SEMI block  (5)
+
+	SEMI  shift 23
+	HOGE  shift 24
+	.  error
+
+
+state 15
+	Command : Term .  (6)
+
+	.  reduce 6
+
+
+state 16
+	Term : AppTerm .  (7)
+
+	.  reduce 7
+
+
+state 17
+	AppTerm : ATerm .  (9)
+
+	.  reduce 9
+
+
+state 18
+	Term : IF Term . THEN Term ELSE Term  (8)
+
+	THEN  shift 25
+	.  error
+
+
+state 19
+	AppTerm : SUCC ATerm .  (10)
+
+	.  reduce 10
+
+
+state 20
+	AppTerm : PRED ATerm .  (11)
+
+	.  reduce 11
+
+
+state 21
+	AppTerm : ISZERO ATerm .  (12)
+
+	.  reduce 12
+
+
+state 22
+	ATerm : LPAREN Term . RPAREN  (13)
+
+	RPAREN  shift 26
+	.  error
+
+
+state 23
+	block : Command SEMI . block  (5)
+
+	IF  shift 4
+	TRUE  shift 5
+	FALSE  shift 6
+	SUCC  shift 7
+	PRED  shift 8
+	ISZERO  shift 9
+	INTV  shift 10
+	EOF  shift 11
+	LPAREN  shift 12
+	.  error
+
+	block  goto 27
+	Command  goto 14
+	Term  goto 15
+	AppTerm  goto 16
+	ATerm  goto 17
+
+
+state 24
+	block : Command HOGE .  (4)
+
+	.  reduce 4
+
+
+state 25
+	Term : IF Term THEN . Term ELSE Term  (8)
+
+	IF  shift 4
+	TRUE  shift 5
+	FALSE  shift 6
+	SUCC  shift 7
+	PRED  shift 8
+	ISZERO  shift 9
+	INTV  shift 10
+	LPAREN  shift 12
+	.  error
+
+	Term  goto 28
+	AppTerm  goto 16
+	ATerm  goto 17
+
+
+state 26
+	ATerm : LPAREN Term RPAREN .  (13)
+
+	.  reduce 13
+
+
+state 27
+	block : Command SEMI block .  (5)
+
+	.  reduce 5
+
+
+state 28
+	Term : IF Term THEN Term . ELSE Term  (8)
+
+	ELSE  shift 29
+	.  error
+
+
+state 29
+	Term : IF Term THEN Term ELSE . Term  (8)
+
+	IF  shift 4
+	TRUE  shift 5
+	FALSE  shift 6
+	SUCC  shift 7
+	PRED  shift 8
+	ISZERO  shift 9
+	INTV  shift 10
+	LPAREN  shift 12
+	.  error
+
+	Term  goto 30
+	AppTerm  goto 16
+	ATerm  goto 17
+
+
+state 30
+	Term : IF Term THEN Term ELSE Term .  (8)
+
+	.  reduce 8
+
+
+56 terminals, 8 nonterminals
+18 grammar rules, 31 states

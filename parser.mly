@@ -81,11 +81,13 @@ open Evaluator
 %type <Syntax.command list> toplevel
 %%
 
-  
-toplevel :
-    EOF                             { [] }
-  | Command HOGE                    { let cmd = $1 in [cmd] }
-  | Command SEMI toplevel           { let cmd = $1 in let cmds = $3 in  cmd::cmds }
+toplevel :                  { [] } 
+  | toplevel block          { [] } 
+
+block :
+    EOF                     { [] }
+  | Command HOGE            { let cmd = $1 in let _ = print_eval cmd; flush stdout in [cmd] }
+  | Command SEMI block      { let cmd = $1 in let cmds = $3 in let _ = print_eval cmd;flush stdout in  cmd::cmds }
 Command :       /* A top-level command */
   | Term                            { let t     = $1 in Eval(tmInfo t,t) }
 Term :
