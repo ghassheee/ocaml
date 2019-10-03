@@ -4,6 +4,10 @@
 open Support.Error
 open Support.Pervasive
 open Syntax
+open Core 
+open Format
+open Evaluator
+
 %}
 
 /* All token has info type 
@@ -68,33 +72,30 @@ open Syntax
 %token <Support.Error.info> TRIANGLE
 %token <Support.Error.info> USCORE
 %token <Support.Error.info> VBAR
-
+%token <Support.Error.info> NEWLINE
+%token <Support.Error.info> DOUBLESEMI
+%token <Support.Error.info> HOGE
 /* The returned type of a toplevel is Syntax.command list. */
 %start toplevel
-%type < Syntax.command list > toplevel
+
+%type <Syntax.command list> toplevel
 %%
 
-/* ---------------------------------------------------------------------- */
-/* The top level of a file is a sequence of commands, each terminated
-   by a semicolon. */
-
+  
 toplevel :
     EOF                             { [] }
-  | Command SEMI toplevel           { let cmd = $1 in let cmds = $3 in cmd::cmds }
-
+  | Command HOGE                    { let cmd = $1 in [cmd] }
+  | Command SEMI toplevel           { let cmd = $1 in let cmds = $3 in  cmd::cmds }
 Command :       /* A top-level command */
-  | Term                            { (let t = $1 in Eval(tmInfo t,t)) }
-
+  | Term                            { let t     = $1 in Eval(tmInfo t,t) }
 Term :
     AppTerm                         { $1 }
   | IF Term THEN Term ELSE Term     { TmIf($1, $2, $4, $6) }
-
 AppTerm :
     ATerm                           { $1 }
   | SUCC ATerm                      { TmSucc($1, $2) }
   | PRED ATerm                      { TmPred($1, $2) }
   | ISZERO ATerm                    { TmIsZero($1, $2) }
-
 ATerm :         /* Atomic terms are ones that never require extra parentheses */
     LPAREN Term RPAREN              { $2 } 
   | TRUE                            { TmTrue($1) }

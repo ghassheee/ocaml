@@ -14,64 +14,59 @@
 #                  .depend)
 
 # These are the object files needed to rebuild the main executable file
-#
-OBJS = support.cmo syntax.cmo core.cmo parser.cmo lexer.cmo main.cmo
+OBJS = support.cmo syntax.cmo core.cmo lexer.cmo evaluator.cmo parser.cmo main.cmo
 
 # Files that need to be generated from other files
-DEPEND += lexer.ml parser.ml 
+DEPEND += lexer.ml parser.ml   
 
 # When "make" is invoked with no arguments, we build an executable 
 # typechecker, after building everything that it depends on
 all: $(DEPEND) $(OBJS) f
 
-# On a Windows machine, we do exactly the same except that the executable
-# file that gets built needs to have the extension ".exe"
-windows: $(DEPEND) $(OBJS) f.exe
-
 # Include an automatically generated list of dependencies between source files
 include .depend
 
-# Build an executable typechecker
-f: $(OBJS) main.cmo 
-	@echo Linking $@
-	ocamlc -o $@ $(COMMONOBJS) $(OBJS) 
+# Rebuild intermodule dependencies
+depend:: $(DEPEND) 
+	ocamldep $(INCLUDE) *.mli *.ml > .depend
 
-# Build an executable typechecker for Windows
-f.exe: $(OBJS) main.cmo 
-	@echo Linking $@
-	ocamlc -o $@ $(COMMONOBJS) $(OBJS) 
+# lexer
+%.ml %.mli: %.mll
+	@rm -f $@
+	ocamllex $<
+	@chmod -w $@
 
-# Build and test
-test: all
-	./f test.f
-
-# Compile an ML module interface
-%.cmi : %.mli
-	ocamlc -c $<
-
-# Compile an ML module implementation
-%.cmo : %.ml
-	ocamlc -c $<
-
-# Generate ML files from a parser definition file
+# parser
 parser.ml parser.mli: parser.mly
 	@rm -f parser.ml parser.mli
 	ocamlyacc -v parser.mly
 	@chmod -w parser.ml parser.mli
 
-# Generate ML files from a lexer definition file
-%.ml %.mli: %.mll
-	@rm -f $@
-	ocamllex $<
-	@chmod -w $@
+# Compile an ML module interface
+%.cmi : %.mli
+	ocamlc -c $< 			# $< denotes the required file, here %.mli 
+
+# Compile an ML module implementation
+%.cmo : %.ml
+	ocamlc -c $<
+
+# Build an executable typechecker
+f: $(OBJS) evaluator.cmo main.cmo 
+	@echo Linking $@  					# Here, $@ denotes f 
+	ocamlc -o $@ $(OBJS) # $(COMMONOBJS) is null.
+
+
+
+
+#######################
+#######################
+#######################
+# Build and test
+test: all
+	./f test.f
 
 # Clean up the directory
 clean::
 	rm -rf lexer.ml parser.ml parser.mli *.o *.cmo *.cmi parser.output \
 	   f f.exe TAGS *~ *.bak
 
-# Rebuild intermodule dependencies
-depend:: $(DEPEND) 
-	ocamldep $(INCLUDE) *.mli *.ml > .depend
-
-# 
