@@ -82,12 +82,15 @@ open Evaluator
 %%
 
 toplevel :                  { [] } 
-  | toplevel block          { [] } 
+  | toplevel block     { List.append $1 $2 } 
 
-block :
+block : 
+    Command                 { let _ = print_eval $1 in [$1] }             
+  | block SEMI Command      { let _ = print_eval $3 in List.append $1 [$3] } 
+/** block :
     EOF                     { [] }
-  | Command HOGE            { let cmd = $1 in let _ = print_eval cmd; flush stdout in [cmd] }
-  | Command SEMI block      { let cmd = $1 in let cmds = $3 in let _ = print_eval cmd;flush stdout in  cmd::cmds }
+  | Command HOGE            { let _ = print_eval $1 in [$1] } 
+  | Command SEMI block      { let cmd = $1 in let cmds = $3 in let _ = print_eval cmd;flush stdout in  cmd::cmds } */
 Command :       /* A top-level command */
   | Term                            { let t     = $1 in Eval(tmInfo t,t) }
 Term :
