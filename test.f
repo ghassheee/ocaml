@@ -1,4 +1,4 @@
-
+/* test.f */ 
 
 if (true) then (succ 10) else (succ 11); 
 

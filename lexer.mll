@@ -114,7 +114,7 @@ let op          = ['~' '%' '\\' '+' '-' '&' '|' ':' '`' '$']
 let symbol      = ['*' '#' '/' '!' '?' '^' '(' ')' '{' '}' '[' ']' '<' '>' '.' ';' '_' ',' '=' '\'']
 let nl          = tabs*("\r")?"\n"
 let comment     = "/*" 
-let end_comment = "*/"  
+let comment_end = "*/"  
 
 rule token = parse
   tabs+                 { token lexbuf }
@@ -128,7 +128,16 @@ rule token = parse
 | symbol                { createID (info lexbuf) (text lexbuf) }
 | ";;" nl               { Parser.HOGE(info lexbuf) }
 | eof                   { Parser.EOF(info lexbuf)   }
+| comment_end           { error (info lexbuf) "Unmatched end of comment" } 
+| comment               { depth := 1; startLex := info lexbuf; comment lexbuf; token lexbuf } 
 | _                     { error (info lexbuf) "Illegal character" }
+
+and comment = parse
+  comment               { depth := succ !depth; comment lexbuf } 
+| comment_end           { depth := pred !depth; if !depth > 0 then comment lexbuf } 
+| eof                   { error (!startLex) "Comment not terminated" } 
+| [^ '\n']              { comment lexbuf }
+| "\n"                  { newline lexbuf; comment lexbuf } 
 
 and escaped = parse
   'n'	                { '\n'      }
