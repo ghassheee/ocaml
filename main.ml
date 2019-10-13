@@ -10,6 +10,8 @@ open Evaluator
  * #### INTERPRETER ####
  * ##################### *)
 
+type machine = Compiler | Interpreter 
+
 let parse' in_channel   =   (* in_channel -> command list *) 
     (* let lexbuf              =   Lexer.create f in_channel in *)
     let lexbuf              =   Lexing.from_channel in_channel  in
@@ -19,27 +21,11 @@ let parse' in_channel   =   (* in_channel -> command list *)
     in
     Parsing.clear_parser(); close_in in_channel; result
 
-let process' ()         = 
-    let cmds                = parse' stdin in 
-    List.iter print_eval cmds
-
-(* interpreter *) 
-let rec parse_error s = print_endline s; flush stdout ;; 
-let main' () =
-    while true do 
-        try process' (); print_endline "debug loop"
-        with    End_of_file -> print_endline "end_of_file"
-            |   e           -> raise e
-            | _     -> error (Lexer.info (Lexing.from_channel stdin)) "Raised from main process error"  
-    done
-
-let _ = Printexc.catch (fun () -> try main' (); 0 with Exit x -> x) () 
-
-
 
 (* ######################
  * ####   COMPILER   ####
- * ######################
+ * ###################### *)
+
 let searchpath          = ref  [""]
 let addSearchpath f     = searchpath := f :: !searchpath
 let argDefs             = [ ("-I", String addSearchpath, "Append a dir to searchpath")]
@@ -66,6 +52,7 @@ let process_file str    =  (* string -> unit *)  (* print the evals of the list 
     let cmds                =   parseFile str in
     List.iter print_eval cmds
 
+
 let main ()         =   parseArgs (); 
                         process_file (getFile ()) 
 let ()              = set_max_boxes 1000
@@ -80,4 +67,3 @@ let res             = Printexc.catch (
     ) ()
 let ()              = print_flush()
 let ()              = exit res 
-*)

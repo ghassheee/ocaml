@@ -10,7 +10,10 @@ let rec process_command = function
                                 printtm_ATerm true t'; 
                                 force_newline ()
 
-let print_eval cmd      = open_hvbox 0; print_flush (); process_command cmd; print_flush ()
+let print_eval cmd      = 
+    open_hvbox 0; 
+    process_command cmd; 
+    print_flush ()
 
 
 

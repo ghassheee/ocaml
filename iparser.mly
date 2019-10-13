@@ -77,29 +77,20 @@ open Evaluator
 %token <Support.Error.info> HOGE
 /* The returned type of a toplevel is Syntax.command list. */
 %start toplevel
-%start input 
-%type <Syntax.command list> input 
-%type <Syntax.command list> toplevel
 
+%type <Syntax.command list> toplevel
 %%
-/* Begin Interpreter */ 
-input : /* Left Recursion */
-                        { [] }
-  | input block         { List.append $1 $2 } 
+
+toplevel :  /* Left Recursion */                
+                       { [] } 
+  | toplevel block     { List.append $1 $2 } 
+
 block :     /* Left Recursion */                    
     Command                 { let _ = print_eval $1 in [$1] }             
   | block SEMI Command      { let _ = print_eval $3 in List.append $1 [$3] }  
   | block HOGE              { $1 }  
   | block EOF               { $1 } 
-/* End Interpreter */
 
-/* Begin Compiler */
-toplevel :  /* Right Recursion */                
-    EOF                     { [] } 
-  | Command SEMI toplevel   { $1 :: $3 } 
-/* End Compliler */ 
-
-/* Modules both for Interpreter and for Compiler */ 
 Command :       /* A top-level command */ 
   | Term                            { let t     = $1 in Eval(tmInfo t,t) }
 Term :

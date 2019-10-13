@@ -21,7 +21,7 @@ DEPEND += lexer.ml parser.ml
 
 # When "make" is invoked with no arguments, we build an executable 
 # typechecker, after building everything that it depends on
-all: $(DEPEND) $(OBJS) f
+all: $(DEPEND) $(OBJS) f g 
 
 # Include an automatically generated list of dependencies between source files
 include .depend
@@ -35,6 +35,7 @@ depend:: $(DEPEND)
 	@rm -f $@
 	ocamllex $<
 	@chmod -w $@
+
 
 # parser
 parser.ml parser.mli: parser.mly
@@ -55,6 +56,10 @@ f: $(OBJS) evaluator.cmo main.cmo
 	@echo Linking $@  					# Here, $@ denotes f 
 	ocamlc -o $@ $(OBJS) # $(COMMONOBJS) is null.
 
+# Build an interpreter 
+g: $(OBJS) evaluator.cmo imain.cmo
+	@echo Linking $@
+	ocamlc -o $@ $(OBJS) 
 
 
 

@@ -106,14 +106,15 @@ let extractLineno yytext offset =
 
 (* The main body of the lexical analyzer *)
 
-let digit   = ['0'-'9'] 
-let init    = ['a'-'z' 'A'-'Z' '_' ]
-let tail    = ['a'-'z' 'A'-'Z' '_' '0'-'9' '\'']
-let tabs    = [' ' '\009' '\012']
-let op      = ['~' '%' '\\' '+' '-' '&' '|' ':' '`' '$']
-let symbol  = ['*' '#' '/' '!' '?' '^' '(' ')' '{' '}' '[' ']' '<' '>' '.' ';' '_' ',' '=' '\'']
-let nl      = tabs*("\r")?"\n"
-
+let digit       = ['0'-'9'] 
+let init        = ['a'-'z' 'A'-'Z' '_' ]
+let tail        = ['a'-'z' 'A'-'Z' '_' '0'-'9' '\'']
+let tabs        = [' ' '\009' '\012']
+let op          = ['~' '%' '\\' '+' '-' '&' '|' ':' '`' '$']
+let symbol      = ['*' '#' '/' '!' '?' '^' '(' ')' '{' '}' '[' ']' '<' '>' '.' ';' '_' ',' '=' '\'']
+let nl          = tabs*("\r")?"\n"
+let comment     = "/*" 
+let end_comment = "*/"  
 
 rule token = parse
   tabs+                 { token lexbuf }
