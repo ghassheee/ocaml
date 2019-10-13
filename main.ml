@@ -6,21 +6,16 @@ open Syntax
 open Arg 
 open Evaluator
 
-(* #####################
- * #### INTERPRETER ####
- * ##################### *)
+let interpreter lexbuf  = Parser.input      Lexer.token lexbuf 
+let compiler    lexbuf  = Parser.toplevel   Lexer.token lexbuf
 
-type machine = Compiler | Interpreter 
-
-let parse' in_channel   =   (* in_channel -> command list *) 
-    (* let lexbuf              =   Lexer.create f in_channel in *)
+let parse' machine in_channel =   (* machine -> in_channel -> command list *) 
     let lexbuf              =   Lexing.from_channel in_channel  in
-    let result              =   try     Parser.toplevel Lexer.token lexbuf
+    let result              =   try     machine lexbuf 
                                 with  | Parsing.Parse_error -> error (Lexer.info lexbuf) "Parse error" 
                                       | e -> raise e 
     in
     Parsing.clear_parser(); close_in in_channel; result
-
 
 (* ######################
  * ####   COMPILER   ####
@@ -46,7 +41,7 @@ let searchFile f        =  (* string -> in_channel *)
 
 let parseFile f         =  (* string -> command list *) 
     let in_channel          =   searchFile f in 
-    parse' in_channel 
+    parse' compiler in_channel 
 
 let process_file str    =  (* string -> unit *)  (* print the evals of the list of commands *)  
     let cmds                =   parseFile str in

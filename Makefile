@@ -14,7 +14,7 @@
 #                  .depend)
 
 # These are the object files needed to rebuild the main executable file
-OBJS = support.cmo syntax.cmo core.cmo lexer.cmo evaluator.cmo parser.cmo main.cmo
+OBJS = support.cmo syntax.cmo core.cmo lexer.cmo evaluator.cmo parser.cmo 
 
 # Files that need to be generated from other files
 DEPEND += lexer.ml parser.ml   
@@ -54,12 +54,12 @@ parser.ml parser.mli: parser.mly
 # Build an executable typechecker
 f: $(OBJS) evaluator.cmo main.cmo 
 	@echo Linking $@  					# Here, $@ denotes f 
-	ocamlc -o $@ $(OBJS) # $(COMMONOBJS) is null.
+	ocamlc -o $@ $(OBJS) main.cmo # $(COMMONOBJS) is null.
 
 # Build an interpreter 
 g: $(OBJS) evaluator.cmo imain.cmo
 	@echo Linking $@
-	ocamlc -o $@ $(OBJS) 
+	ocamlc -o $@ $(OBJS) imain.cmo
 
 
 
@@ -73,5 +73,5 @@ test: all
 # Clean up the directory
 clean::
 	rm -rf lexer.ml parser.ml parser.mli *.o *.cmo *.cmi parser.output \
-	   f f.exe TAGS *~ *.bak
+	   f g TAGS *~ *.bak
 

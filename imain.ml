@@ -6,21 +6,23 @@ open Syntax
 open Arg 
 open Evaluator
 
-(* #####################
- * #### INTERPRETER ####
- * ##################### *)
+let interpreter lexbuf  = Parser.input      Lexer.token lexbuf 
+let compiler    lexbuf  = Parser.toplevel   Lexer.token lexbuf
 
-let parse' in_channel   =   (* in_channel -> command list *) 
-    (* let lexbuf              =   Lexer.create f in_channel in *)
+let parse' machine in_channel =   (* machine -> in_channel -> command list *) 
     let lexbuf              =   Lexing.from_channel in_channel  in
-    let result              =   try     Parser.input Lexer.token lexbuf
+    let result              =   try     machine lexbuf 
                                 with  | Parsing.Parse_error -> error (Lexer.info lexbuf) "Parse error" 
                                       | e -> raise e 
     in
     Parsing.clear_parser(); close_in in_channel; result
 
+(* #####################
+ * #### INTERPRETER ####
+ * ##################### *)
+
 let process' ()         = 
-    let cmds                = parse' stdin in 
+    let cmds                = parse' interpreter stdin in 
     List.iter print_eval cmds
 
 (* interpreter *) 
@@ -30,7 +32,6 @@ let main' () =
         try process' (); print_endline "debug loop"
         with    End_of_file -> print_endline "end_of_file"
             |   e           -> raise e
-            | _     -> error (Lexer.info (Lexing.from_channel stdin)) "Raised from main process error"  
     done
 
 let _ = Printexc.catch (fun () -> try main' (); 0 with Exit x -> x) () 
