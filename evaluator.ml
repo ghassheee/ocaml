@@ -5,14 +5,51 @@ open Support.Error
 open Syntax
 open Arg 
 
-let rec process_command = function 
-  | Eval(fi,t)              ->  let t' = eval t in
-                                printtm_ATerm true t'; 
-                                force_newline ()
 
-let print_eval cmd      = 
+exception NoRuleApplies
+
+let rec isnumericval ctx = function 
+    | TmZero(_)         -> true
+    | TmSucc(_,t1)      -> isnumericval ctx t1
+    | _                 -> false
+
+let rec isval ctx = function 
+    | TmAbs(_,_,_)              -> true
+    | TmTrue(_)                 -> true
+    | TmFalse(_)                -> true
+    | t when isnumericval ctx t -> true
+    | _                         -> false
+
+let rec eval1 ctx = function 
+    | TmApp(fi,TmAbs(_,x,t12),v2) when isval ctx v2 
+                                    -> termSubstTop v2 t12 
+    | TmApp(fi,v1,t2) when isval ctx v1 
+                                    -> TmApp(fi,v1,eval1 ctx t2) 
+    | TmApp(fi,t1,t2)               -> TmApp(fi,eval1 ctx t1,t2) 
+    | TmIf(_,TmTrue(_),t2,t3)       ->  t2
+    | TmIf(_,TmFalse(_),t2,t3)      ->  t3
+    | TmIf(fi,t1,t2,t3)             ->  let t1' = eval1 ctx t1 in TmIf(fi, t1', t2, t3)
+    | TmSucc(fi,t1)                 ->  let t1' = eval1 ctx t1 in TmSucc(fi, t1')
+    | TmPred(_,TmZero(_))           ->  TmZero(dummyinfo)
+    | TmPred(_,TmSucc(_,nv1)) when (isnumericval ctx nv1) -> nv1
+    | TmPred(fi,t1)                 ->  TmPred(fi, eval1 ctx t1)
+    | TmIsZero(_,TmZero(_))         ->  TmTrue(dummyinfo)
+    | TmIsZero(_,TmSucc(_,nv1)) when (isnumericval ctx nv1) ->    TmFalse(dummyinfo)
+    | TmIsZero(fi,t1)               ->  let t1' = eval1 ctx t1 in TmIsZero(fi, t1')
+    | _                             ->  raise NoRuleApplies
+
+let rec eval ctx t =
+    try eval ctx (eval1 ctx t) 
+    with NoRuleApplies -> t
+
+let rec process_command ctx = function 
+    | Eval(fi,t)                ->  printtm_ATerm true [] (eval ctx t); force_newline (); ctx
+    | Bind(fi,x,bind)           ->  pr ("Now, "^x^ " is a variable"); force_newline(); addbinding ctx x bind 
+
+
+let print_eval ctx cmd      = 
     open_hvbox 0; 
-    process_command cmd; 
+    process_command ctx cmd; 
     print_flush ()
 
 

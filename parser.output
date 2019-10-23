@@ -1,0 +1,545 @@
+   0  $accept : %entry% $end
+
+   1  input :
+   2        | input block
+
+   3  block : Command
+   4        | block SEMI Command
+   5        | block HOGE
+   6        | block EOF
+
+   7  toplevel : EOF
+   8           | Command SEMI toplevel
+
+   9  Command : Term
+  10          | LCID Binder
+
+  11  Binder : SLASH
+
+  12  Term : AppTerm
+  13       | LAMBDA LCID DOT Term
+  14       | IF Term THEN Term ELSE Term
+
+  15  AppTerm : ATerm
+  16          | AppTerm ATerm
+  17          | SUCC ATerm
+  18          | PRED ATerm
+  19          | ISZERO ATerm
+
+  20  ATerm : LPAREN Term RPAREN
+  21        | LCID
+  22        | TRUE
+  23        | FALSE
+  24        | INTV
+
+  25  %entry% : '\001' toplevel
+  26          | '\002' input
+
+state 0
+	$accept : . %entry% $end  (0)
+
+	'\001'  shift 1
+	'\002'  shift 2
+	.  error
+
+	%entry%  goto 3
+
+
+state 1
+	%entry% : '\001' . toplevel  (25)
+
+	LAMBDA  shift 4
+	IF  shift 5
+	TRUE  shift 6
+	FALSE  shift 7
+	SUCC  shift 8
+	PRED  shift 9
+	ISZERO  shift 10
+	LCID  shift 11
+	INTV  shift 12
+	EOF  shift 13
+	LPAREN  shift 14
+	.  error
+
+	toplevel  goto 15
+	Command  goto 16
+	Term  goto 17
+	AppTerm  goto 18
+	ATerm  goto 19
+
+
+state 2
+	%entry% : '\002' . input  (26)
+	input : .  (1)
+
+	.  reduce 1
+
+	input  goto 20
+
+
+state 3
+	$accept : %entry% . $end  (0)
+
+	$end  accept
+
+
+state 4
+	Term : LAMBDA . LCID DOT Term  (13)
+
+	LCID  shift 21
+	.  error
+
+
+state 5
+	Term : IF . Term THEN Term ELSE Term  (14)
+
+	LAMBDA  shift 4
+	IF  shift 5
+	TRUE  shift 6
+	FALSE  shift 7
+	SUCC  shift 8
+	PRED  shift 9
+	ISZERO  shift 10
+	LCID  shift 22
+	INTV  shift 12
+	LPAREN  shift 14
+	.  error
+
+	Term  goto 23
+	AppTerm  goto 18
+	ATerm  goto 19
+
+
+state 6
+	ATerm : TRUE .  (22)
+
+	.  reduce 22
+
+
+state 7
+	ATerm : FALSE .  (23)
+
+	.  reduce 23
+
+
+state 8
+	AppTerm : SUCC . ATerm  (17)
+
+	TRUE  shift 6
+	FALSE  shift 7
+	LCID  shift 22
+	INTV  shift 12
+	LPAREN  shift 14
+	.  error
+
+	ATerm  goto 24
+
+
+state 9
+	AppTerm : PRED . ATerm  (18)
+
+	TRUE  shift 6
+	FALSE  shift 7
+	LCID  shift 22
+	INTV  shift 12
+	LPAREN  shift 14
+	.  error
+
+	ATerm  goto 25
+
+
+state 10
+	AppTerm : ISZERO . ATerm  (19)
+
+	TRUE  shift 6
+	FALSE  shift 7
+	LCID  shift 22
+	INTV  shift 12
+	LPAREN  shift 14
+	.  error
+
+	ATerm  goto 26
+
+
+state 11
+	Command : LCID . Binder  (10)
+	ATerm : LCID .  (21)
+
+	SLASH  shift 27
+	$end  reduce 21
+	LAMBDA  reduce 21
+	IF  reduce 21
+	TRUE  reduce 21
+	FALSE  reduce 21
+	SUCC  reduce 21
+	PRED  reduce 21
+	ISZERO  reduce 21
+	LCID  reduce 21
+	INTV  reduce 21
+	EOF  reduce 21
+	LPAREN  reduce 21
+	SEMI  reduce 21
+	HOGE  reduce 21
+
+	Binder  goto 28
+
+
+state 12
+	ATerm : INTV .  (24)
+
+	.  reduce 24
+
+
+state 13
+	toplevel : EOF .  (7)
+
+	.  reduce 7
+
+
+state 14
+	ATerm : LPAREN . Term RPAREN  (20)
+
+	LAMBDA  shift 4
+	IF  shift 5
+	TRUE  shift 6
+	FALSE  shift 7
+	SUCC  shift 8
+	PRED  shift 9
+	ISZERO  shift 10
+	LCID  shift 22
+	INTV  shift 12
+	LPAREN  shift 14
+	.  error
+
+	Term  goto 29
+	AppTerm  goto 18
+	ATerm  goto 19
+
+
+state 15
+	%entry% : '\001' toplevel .  (25)
+
+	.  reduce 25
+
+
+state 16
+	toplevel : Command . SEMI toplevel  (8)
+
+	SEMI  shift 30
+	.  error
+
+
+state 17
+	Command : Term .  (9)
+
+	.  reduce 9
+
+
+18: shift/reduce conflict (shift 6, reduce 12) on TRUE
+18: shift/reduce conflict (shift 7, reduce 12) on FALSE
+18: shift/reduce conflict (shift 22, reduce 12) on LCID
+18: shift/reduce conflict (shift 12, reduce 12) on INTV
+18: shift/reduce conflict (shift 14, reduce 12) on LPAREN
+state 18
+	Term : AppTerm .  (12)
+	AppTerm : AppTerm . ATerm  (16)
+
+	TRUE  shift 6
+	FALSE  shift 7
+	LCID  shift 22
+	INTV  shift 12
+	LPAREN  shift 14
+	$end  reduce 12
+	LAMBDA  reduce 12
+	IF  reduce 12
+	THEN  reduce 12
+	ELSE  reduce 12
+	SUCC  reduce 12
+	PRED  reduce 12
+	ISZERO  reduce 12
+	EOF  reduce 12
+	RPAREN  reduce 12
+	SEMI  reduce 12
+	HOGE  reduce 12
+
+	ATerm  goto 31
+
+
+state 19
+	AppTerm : ATerm .  (15)
+
+	.  reduce 15
+
+
+state 20
+	input : input . block  (2)
+	%entry% : '\002' input .  (26)
+
+	LAMBDA  shift 4
+	IF  shift 5
+	TRUE  shift 6
+	FALSE  shift 7
+	SUCC  shift 8
+	PRED  shift 9
+	ISZERO  shift 10
+	LCID  shift 11
+	INTV  shift 12
+	LPAREN  shift 14
+	$end  reduce 26
+
+	block  goto 32
+	Command  goto 33
+	Term  goto 17
+	AppTerm  goto 18
+	ATerm  goto 19
+
+
+state 21
+	Term : LAMBDA LCID . DOT Term  (13)
+
+	DOT  shift 34
+	.  error
+
+
+state 22
+	ATerm : LCID .  (21)
+
+	.  reduce 21
+
+
+state 23
+	Term : IF Term . THEN Term ELSE Term  (14)
+
+	THEN  shift 35
+	.  error
+
+
+state 24
+	AppTerm : SUCC ATerm .  (17)
+
+	.  reduce 17
+
+
+state 25
+	AppTerm : PRED ATerm .  (18)
+
+	.  reduce 18
+
+
+state 26
+	AppTerm : ISZERO ATerm .  (19)
+
+	.  reduce 19
+
+
+state 27
+	Binder : SLASH .  (11)
+
+	.  reduce 11
+
+
+state 28
+	Command : LCID Binder .  (10)
+
+	.  reduce 10
+
+
+state 29
+	ATerm : LPAREN Term . RPAREN  (20)
+
+	RPAREN  shift 36
+	.  error
+
+
+state 30
+	toplevel : Command SEMI . toplevel  (8)
+
+	LAMBDA  shift 4
+	IF  shift 5
+	TRUE  shift 6
+	FALSE  shift 7
+	SUCC  shift 8
+	PRED  shift 9
+	ISZERO  shift 10
+	LCID  shift 11
+	INTV  shift 12
+	EOF  shift 13
+	LPAREN  shift 14
+	.  error
+
+	toplevel  goto 37
+	Command  goto 16
+	Term  goto 17
+	AppTerm  goto 18
+	ATerm  goto 19
+
+
+state 31
+	AppTerm : AppTerm ATerm .  (16)
+
+	.  reduce 16
+
+
+state 32
+	input : input block .  (2)
+	block : block . SEMI Command  (4)
+	block : block . HOGE  (5)
+	block : block . EOF  (6)
+
+	EOF  shift 38
+	SEMI  shift 39
+	HOGE  shift 40
+	$end  reduce 2
+	LAMBDA  reduce 2
+	IF  reduce 2
+	TRUE  reduce 2
+	FALSE  reduce 2
+	SUCC  reduce 2
+	PRED  reduce 2
+	ISZERO  reduce 2
+	LCID  reduce 2
+	INTV  reduce 2
+	LPAREN  reduce 2
+
+
+state 33
+	block : Command .  (3)
+
+	.  reduce 3
+
+
+state 34
+	Term : LAMBDA LCID DOT . Term  (13)
+
+	LAMBDA  shift 4
+	IF  shift 5
+	TRUE  shift 6
+	FALSE  shift 7
+	SUCC  shift 8
+	PRED  shift 9
+	ISZERO  shift 10
+	LCID  shift 22
+	INTV  shift 12
+	LPAREN  shift 14
+	.  error
+
+	Term  goto 41
+	AppTerm  goto 18
+	ATerm  goto 19
+
+
+state 35
+	Term : IF Term THEN . Term ELSE Term  (14)
+
+	LAMBDA  shift 4
+	IF  shift 5
+	TRUE  shift 6
+	FALSE  shift 7
+	SUCC  shift 8
+	PRED  shift 9
+	ISZERO  shift 10
+	LCID  shift 22
+	INTV  shift 12
+	LPAREN  shift 14
+	.  error
+
+	Term  goto 42
+	AppTerm  goto 18
+	ATerm  goto 19
+
+
+state 36
+	ATerm : LPAREN Term RPAREN .  (20)
+
+	.  reduce 20
+
+
+state 37
+	toplevel : Command SEMI toplevel .  (8)
+
+	.  reduce 8
+
+
+state 38
+	block : block EOF .  (6)
+
+	.  reduce 6
+
+
+state 39
+	block : block SEMI . Command  (4)
+
+	LAMBDA  shift 4
+	IF  shift 5
+	TRUE  shift 6
+	FALSE  shift 7
+	SUCC  shift 8
+	PRED  shift 9
+	ISZERO  shift 10
+	LCID  shift 11
+	INTV  shift 12
+	LPAREN  shift 14
+	.  error
+
+	Command  goto 43
+	Term  goto 17
+	AppTerm  goto 18
+	ATerm  goto 19
+
+
+state 40
+	block : block HOGE .  (5)
+
+	.  reduce 5
+
+
+state 41
+	Term : LAMBDA LCID DOT Term .  (13)
+
+	.  reduce 13
+
+
+state 42
+	Term : IF Term THEN Term . ELSE Term  (14)
+
+	ELSE  shift 44
+	.  error
+
+
+state 43
+	block : block SEMI Command .  (4)
+
+	.  reduce 4
+
+
+state 44
+	Term : IF Term THEN Term ELSE . Term  (14)
+
+	LAMBDA  shift 4
+	IF  shift 5
+	TRUE  shift 6
+	FALSE  shift 7
+	SUCC  shift 8
+	PRED  shift 9
+	ISZERO  shift 10
+	LCID  shift 22
+	INTV  shift 12
+	LPAREN  shift 14
+	.  error
+
+	Term  goto 45
+	AppTerm  goto 18
+	ATerm  goto 19
+
+
+state 45
+	Term : IF Term THEN Term ELSE Term .  (14)
+
+	.  reduce 14
+
+
+State 18 contains 5 shift/reduce conflicts.
+
+
+58 terminals, 10 nonterminals
+27 grammar rules, 46 states
