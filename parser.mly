@@ -114,7 +114,7 @@ Command :       /* A top-level command */
     | Term                          { fun ctx   -> let t = $1 ctx in Eval(tmInfo t,t),ctx }
     | LCID Binder                   { fun ctx   -> ((Bind($1.i,$1.v,$2 ctx)), addname ctx $1.v) } 
 Binder  : 
-    | SLASH                         { fun ctx   -> NameBind } 
+    | COLON Type                    { fun ctx   -> VarBind($2 ctx) } 
 
 Type : 
     | ArrowType                     { $1 } 
@@ -131,9 +131,10 @@ Term :
         fun ctx -> 
             let t2 = $4 (addname ctx $2.v) in 
             TmAbs($1, $2.v, typeof ctx t2, t2) }
-    | LAMBDA LCID COLON UCID DOT Term
+    | LAMBDA LCID COLON Type DOT Term
     { print_endline "hoge";  fun ctx -> 
-        let t2 = $6 (addname ctx $2.v) in TmAbs($1, $2.v, typeof ctx t2, t2) }
+        let ctx1 = addname ctx $2.v in 
+        TmAbs($1, $2.v, $4 ctx, $6 ctx1) }
     | IF Term THEN Term ELSE Term   { fun ctx -> TmIf($1, $2 ctx, $4 ctx, $6 ctx) }
 AppTerm :
     | ATerm                         { $1 }

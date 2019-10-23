@@ -64,7 +64,7 @@ let rec name2index fi ctx x     = match ctx with
 let rec getbinding fi ctx i     = 
     try let (_,bind)    = List.nth ctx i in bind 
     with Failure _      -> 
-        let msg = Printf.sprintf "Variable lookup failure: offset:%d,ctx size:%d" in
+        let msg = Printf.sprintf "getbinding: Variable lookup failure: offset:%d,ctx size:%d" in
         error fi (msg i(List.length ctx));;
 
 let getTypeFromContext fi ctx i = match getbinding fi ctx i with 
