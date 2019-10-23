@@ -14,7 +14,7 @@
 #                  .depend)
 
 # These are the object files needed to rebuild the main executable file
-OBJS = support.cmo syntax.cmo core.cmo lexer.cmo evaluator.cmo parser.cmo 
+OBJS = support.cmo syntax.cmo lexer.cmo type.cmo eval.cmo parser.cmo 
 
 # Files that need to be generated from other files
 DEPEND += lexer.ml parser.ml   
@@ -52,12 +52,12 @@ parser.ml parser.mli: parser.mly
 	ocamlc -c $<
 
 # Build an executable typechecker
-f: $(OBJS) evaluator.cmo main.cmo 
+f: $(OBJS) main.cmo 
 	@echo Linking $@  					# Here, $@ denotes f 
 	ocamlc -o $@ $(OBJS) main.cmo # $(COMMONOBJS) is null.
 
 # Build an interpreter 
-g: $(OBJS) evaluator.cmo imain.cmo
+g: $(OBJS) imain.cmo
 	@echo Linking $@
 	ocamlc -o $@ $(OBJS) imain.cmo
 

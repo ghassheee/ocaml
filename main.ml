@@ -4,7 +4,8 @@ open Support.Pervasive
 open Support.Error
 open Syntax
 open Arg 
-open Evaluator
+open Type
+open Eval
 
 let interpreter lexbuf  = Parser.input      Lexer.token lexbuf 
 let compiler    lexbuf  = Parser.toplevel   Lexer.token lexbuf

@@ -7,6 +7,7 @@ if false then true else false;
 
 x/;
 y/;
+(\x:Bool.x);
 (\x.x) 1; 
 (\z.z) 10; 
 0; 

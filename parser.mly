@@ -6,7 +6,8 @@ open Support.Pervasive
 open Syntax
 open Core 
 open Format
-open Evaluator
+open Type
+open Eval
 
 %}
 
@@ -18,6 +19,8 @@ open Evaluator
  * constant values -- more info is provided. */
 
 /* Keyword tokens */
+%token <Support.Error.info> BOOL
+
 %token <Support.Error.info> LAMBDA
 %token <Support.Error.info> IF
 %token <Support.Error.info> THEN
@@ -112,9 +115,25 @@ Command :       /* A top-level command */
     | LCID Binder                   { fun ctx   -> ((Bind($1.i,$1.v,$2 ctx)), addname ctx $1.v) } 
 Binder  : 
     | SLASH                         { fun ctx   -> NameBind } 
+
+Type : 
+    | ArrowType                     { $1 } 
+AType : 
+    | LPAREN Type RPAREN            { $2 } 
+    | BOOL                          { fun ctx   -> TyBool } 
+ArrowType :
+    | AType ARROW ArrowType         { fun ctx   -> TyArr($1 ctx, $3 ctx) }
+    | AType                         { $1 } 
+
 Term :
     | AppTerm                       { $1 }
-    | LAMBDA LCID DOT Term          { print_endline "hoge";  fun ctx -> TmAbs($1, $2.v, $4(addname ctx $2.v)) }
+    | LAMBDA LCID DOT Term          { print_endline "hoge";  
+        fun ctx -> 
+            let t2 = $4 (addname ctx $2.v) in 
+            TmAbs($1, $2.v, typeof ctx t2, t2) }
+    | LAMBDA LCID COLON UCID DOT Term
+    { print_endline "hoge";  fun ctx -> 
+        let t2 = $6 (addname ctx $2.v) in TmAbs($1, $2.v, typeof ctx t2, t2) }
     | IF Term THEN Term ELSE Term   { fun ctx -> TmIf($1, $2 ctx, $4 ctx, $6 ctx) }
 AppTerm :
     | ATerm                         { $1 }
