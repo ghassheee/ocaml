@@ -1,6 +1,6 @@
 open Format
 
-
+let pe  = print_endline
 let pi  = print_int
 let pr  = print_string
 let ps  = print_space

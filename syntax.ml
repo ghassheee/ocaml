@@ -9,13 +9,14 @@ open Support.Pervasive
 type ty     =
     | TyArr of ty * ty
     | TyBool
+    | TyNat 
 ;;
 
 type term =
     (* Lambda *) 
-    | TmVar of info * int * int 
-    | TmAbs of info * string * ty * term 
-    | TmApp of info * term * term 
+    | TmVar     of info * int * int 
+    | TmAbs     of info * string * ty * term 
+    | TmApp     of info * term * term 
     (* Arith *) 
     | TmTrue    of info
     | TmFalse   of info
@@ -61,23 +62,22 @@ let rec name2index fi ctx x     = match ctx with
     | []                            -> error fi ("Identifier " ^ x ^ " is unbound")
     | (y,_) :: rest                 -> if y=x then 0 else 1 + (name2index fi rest x) ;;
 
-let rec getbinding fi ctx i     = 
-    try let (_,bind)    = List.nth ctx i in bind 
-    with Failure _      -> 
-        let msg = Printf.sprintf "getbinding: Variable lookup failure: offset:%d,ctx size:%d" in
-        error fi (msg i(List.length ctx));;
+let rec getbinding fi n         = function
+    | ctx                           -> try     let (_,bind)    = List.nth ctx n in bind 
+        with Failure _ -> let msg = Printf.sprintf "getbinding: Variable lookup failure: offset:%d,ctx size:%d" in
+                     error fi (msg n(List.length ctx));;
 
-let getTypeFromContext fi ctx i = match getbinding fi ctx i with 
+let getTypeFromContext fi ctx n = match getbinding fi n ctx with 
     | VarBind(tyT)                  -> tyT
-    | _                             -> error fi("getTypeFromContext: Wrong binding"^(index2name fi ctx i))
+    | _                             -> error fi("getTypeFromContext: Wrong binding"^(index2name fi ctx n))
 
 
 (* -------------------------------------------------- *) 
 (* Shifting *)
 
-let rec walk funOnVar c   = print_endline "walk";let f = funOnVar in function 
+let rec walk funOnVar c   = let f = funOnVar in function 
     | TmVar(fi,x,n)             -> funOnVar fi c x n
-    | TmAbs(fi,x,tyT,t2)            -> TmAbs(fi,x,tyT,walk f(c+1)t2)
+    | TmAbs(fi,x,tyT,t2)        -> TmAbs(fi,x,tyT,walk f(c+1)t2)
     | TmApp(fi,t1,t2)           -> TmApp(fi, walk f c t1, walk f c t2) 
     | TmIf(fi,t1,t2,t3)         -> TmIf(fi,walk f c t1, walk f c t2, walk f c t3) 
     | TmSucc(fi,t)              -> TmSucc(fi, walk f c t) 
@@ -87,19 +87,19 @@ let rec walk funOnVar c   = print_endline "walk";let f = funOnVar in function
 
 let termShiftOnVar d        = fun fi c x n ->   if x>=c then TmVar(fi,x+d,n+d) else TmVar(fi,x,n+d)
 let termShiftAbove d        = walk (termShiftOnVar d)
-let termShift d             = termShiftAbove d 0 
+let termShift d             = if d>=0 then print_endline ("SHIFT: "^(string_of_int d));termShiftAbove d 0 
 
 (* -------------------------------------------------- *) 
 (* Substitution *) 
 let termSubstOnVar j s t    = fun fi c x n ->   if x=j+c then termShift c s else TmVar(fi, x, n) 
 let termSubst j s t         = walk (termSubstOnVar j s t) 0 t
-let termSubstTop s t        = termShift (-1) (termSubst 0 (termShift 1 s) t) 
+let termSubstTop s t        = print_endline "SUBSTITUTE: "; termShift (-1) (termSubst 0 (termShift 1 s) t) 
 
 (* -------------------------------------------------- *) 
 (* Extracting file info *)
 let tmInfo  = function 
     | TmVar(fi,_,_)         -> fi
-    | TmAbs(fi,_,_,_)         -> fi
+    | TmAbs(fi,_,_,_)       -> fi
     | TmApp(fi,_,_)         -> fi 
     | TmTrue(fi)            -> fi
     | TmFalse(fi)           -> fi
@@ -120,24 +120,29 @@ let small   = function
     | TmVar(_,_,_)              -> true
     | _                         -> false 
 ;;
+
+(* -------------------------------------------------- *) 
+(* Type Print *) 
 let rec printty_Type outer      = function
-    | tyT                       -> printty_ArrowType outer tyT
+    | tyT                       ->  printty_ArrowType outer tyT
 and printty_ArrowType outer     = function
-    | TyArr(tyT1,tyT2)          -> obox0();
-        printty_AType false tyT1;
-        if outer then pr " "; pr "->"; if outer then ps () else break();
-        printty_AType outer tyT2; cbox()
-    | tyT                       -> printty_AType outer tyT
+    | TyArr(tyT1,tyT2)          ->  obox0(); printty_AType false tyT1;
+                                    if outer then pr " "; pr "→"; if outer then ps () else break();
+                                    printty_AType outer tyT2; cbox()
+    | tyT                       ->  printty_AType outer tyT
 and printty_AType outer         = function
-    | TyBool                    -> pr "Bool" 
-    | tyT                       -> pr "("; printty_Type outer tyT; pr ")"
+    | TyBool                    ->  pr "𝐁" 
+    | TyNat                     ->  pr "𝐍"
+    | tyT                       ->  pr "("; printty_Type outer tyT; pr ")"
 ;;
 
 let printty tyT                 = printty_Type true tyT
 
+(* -------------------------------------------------- *) 
+(* Term Print *)
 let rec printtm_Term outer ctx  = function 
     | TmAbs(fi,x,tyT1,t2)            ->  let (ctx',x') = pickfreshname ctx x in obox();
-        pr "lambda "; pr x'; pr ":"; printty_Type false tyT1; pr "."; 
+        pr "λ"; pr x'; pr ":"; printty_Type false tyT1; pr "."; 
         if (small t2) && not outer then break() else ps();
         printtm_Term outer ctx' t2;
         cbox()

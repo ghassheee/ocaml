@@ -3,7 +3,8 @@ open Support.Error
 
 let reservedWords = [
   (* Keywords *)
-    ("Bool",    fun i -> Parser.BOOL i);
+  ("Bool",    fun i -> Parser.BOOL i);
+  ("Nat",   fun i -> Parser.NAT i);
   ("\\",    fun i -> Parser.LAMBDA i);
   ("if",    fun i -> Parser.IF i);
   ("then",  fun i -> Parser.THEN i);
