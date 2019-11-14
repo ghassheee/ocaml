@@ -21,6 +21,7 @@ let rec isval ctx = function
     | _                             -> false
 
 let rec eval1 ctx = function 
+    | TmLet(fi,x,t1,t2)->  raise NoRuleApplies  
     | TmApp(fi,TmAbs(_,x,tyT11,t12),v2) when isval ctx v2 
                                         ->  termSubstTop v2 t12 
     | TmApp(fi,v1,t2) when isval ctx v1 ->  TmApp(fi,v1,eval1 ctx t2) 

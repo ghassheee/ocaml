@@ -20,6 +20,9 @@ let pe = print_endline
  * constant values -- more info is provided. */
 
 /* Keyword tokens */
+%token <Support.Error.info> IN
+%token <Support.Error.info> LET
+
 %token <Support.Error.info> BOOL
 %token <Support.Error.info> NAT
 
@@ -134,6 +137,7 @@ ArrowType   :
 
 Term        :
     | AppTerm                       { $1 }
+    | LET LCID EQ Term IN Term      { fun ctx   -> TmLet($1, $2.v, $4 ctx, $6 (addname ctx $2.v)) }
     | LAMBDA LCID COLON Type DOT Term   
         { pe "PARSER: λx:T.t"; fun ctx -> let ctx1=addname ctx $2.v in TmAbs($1,$2.v,$4 ctx,$6 ctx1)}
     | IF Term THEN Term ELSE Term   { fun ctx   -> TmIf($1, $2 ctx, $4 ctx, $6 ctx) }

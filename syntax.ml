@@ -13,6 +13,8 @@ type ty     =
 ;;
 
 type term =
+    (* Let  *)
+    | TmLet     of info * string * term * term
     (* Lambda *) 
     | TmVar     of info * int * int 
     | TmAbs     of info * string * ty * term 
@@ -77,6 +79,7 @@ let getTypeFromContext fi ctx n = match getbinding fi n ctx with
 
 let rec walk funOnVar c   = let f = funOnVar in function 
     | TmVar(fi,x,n)             -> funOnVar fi c x n
+    | TmLet(fi,x,t1,t2)         -> TmLet(fi,x,walk f c t1, walk f(c+1)t2) 
     | TmAbs(fi,x,tyT,t2)        -> TmAbs(fi,x,tyT,walk f(c+1)t2)
     | TmApp(fi,t1,t2)           -> TmApp(fi, walk f c t1, walk f c t2) 
     | TmIf(fi,t1,t2,t3)         -> TmIf(fi,walk f c t1, walk f c t2, walk f c t3) 
@@ -101,6 +104,7 @@ let tmInfo  = function
     | TmVar(fi,_,_)         -> fi
     | TmAbs(fi,_,_,_)       -> fi
     | TmApp(fi,_,_)         -> fi 
+    | TmLet(fi,_,_,_)       -> fi
     | TmTrue(fi)            -> fi
     | TmFalse(fi)           -> fi
     | TmIf(fi,_,_,_)        -> fi
@@ -141,7 +145,12 @@ let printty tyT                 = printty_Type true tyT
 (* -------------------------------------------------- *) 
 (* Term Print *)
 let rec printtm_Term outer ctx  = function 
-    | TmAbs(fi,x,tyT1,t2)            ->  let (ctx',x') = pickfreshname ctx x in obox();
+    | TmLet(fi,x,t1,t2)         ->  obox0();
+        pr "let "; pr x; pr " = ";
+        printtm_Term false ctx t1; ps(); pr"in"; ps();
+        printtm_Term false (addname ctx x) t2;
+        cbox()
+    | TmAbs(fi,x,tyT1,t2)       ->  let (ctx',x') = pickfreshname ctx x in obox();
         pr "λ"; pr x'; pr ":"; printty_Type false tyT1; pr "."; 
         if (small t2) && not outer then break() else ps();
         printtm_Term outer ctx' t2;
@@ -151,6 +160,7 @@ let rec printtm_Term outer ctx  = function
         pr "then "; printtm_Term false ctx t2; ps();
         pr "else "; printtm_Term false ctx t3;
         cbox()
+
     | t                         -> printtm_AppTerm outer ctx t
 and printtm_AppTerm outer ctx   = function 
     | TmApp(fi, t1, t2)         ->  obox0(); printtm_AppTerm false ctx t1; ps(); 
