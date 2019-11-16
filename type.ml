@@ -12,6 +12,7 @@ exception NoRuleApplies
 
 let rec typeof ctx   t      = pr "TYPEOF: ";printtm ctx t;print_newline ();  match t with
     | TmVar(fi,i,_)             -> getTypeFromContext fi ctx i 
+    | TmLet(fi,x,t1,t2)         -> typeof ctx (TmApp(fi,TmAbs(fi,x,typeof ctx t1,t2),t1))
     | TmAbs(fi,x,tyT1,t2)       -> 
             let ctx'    = addbinding ctx x (VarBind(tyT1)) in 
             let tyT2    = typeof ctx' t2 in
