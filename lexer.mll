@@ -3,6 +3,9 @@ open Support.Error
 
 let reservedWords = [
   (* Keywords *)
+    ("unit",      fun i -> Parser.UNIT i);
+    ("Unit",    fun i -> Parser.UNITTYPE i);
+    ("where",   fun i -> Parser.WHERE i);
     ("in",      fun i -> Parser.IN i);
     ("let",     fun i -> Parser.LET i);
     ("Bool",    fun i -> Parser.BOOL i);

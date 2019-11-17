@@ -23,6 +23,7 @@ let rec typeof ctx   t      = pr "TYPEOF: ";printtm ctx t;print_newline ();  mat
             (match tyT1 with 
                 | TyArr(tyT11,tyT12)    -> if (=) tyT2 tyT11 then tyT12 else error fi "type mismatch" 
                 | _                     -> error fi "arrow type expected" )
+    | TmUnit(fi)                -> TyUnit
     | TmTrue(fi)                -> TyBool
     | TmFalse(fi)               -> TyBool
     | TmZero(fi)                -> TyNat

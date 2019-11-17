@@ -10,9 +10,12 @@ type ty     =
     | TyArr of ty * ty
     | TyBool
     | TyNat 
+    | TyUnit
 ;;
 
 type term =
+    (* Unit *)
+    | TmUnit    of info 
     (* Let  *)
     | TmLet     of info * string * term * term
     (* Lambda *) 
@@ -101,6 +104,7 @@ let termSubstTop s t        = print_endline "SUBSTITUTE: "; termShift (-1) (term
 (* -------------------------------------------------- *) 
 (* Extracting file info *)
 let tmInfo  = function 
+    | TmUnit(fi)            -> fi 
     | TmVar(fi,_,_)         -> fi
     | TmAbs(fi,_,_,_)       -> fi
     | TmApp(fi,_,_)         -> fi 
@@ -137,6 +141,7 @@ and printty_ArrowType outer     = function
 and printty_AType outer         = function
     | TyBool                    ->  pr "𝐁" 
     | TyNat                     ->  pr "𝐍"
+    | TyUnit                    ->  pr "𝐔"
     | tyT                       ->  pr "("; printty_Type outer tyT; pr ")"
 ;;
 
@@ -174,6 +179,7 @@ and printtm_ATerm outer ctx     = function
         then pr (index2name fi ctx x)
         else pr ("[bad index: " ^ (string_of_int x) ^ "/" ^ (string_of_int n) ^ " in {" 
                 ^ (List.fold_left (fun s(x,_)-> s^" "^x) "" ctx) ^ " }]") 
+    | TmUnit(_)                 ->  pr "()" 
     | TmTrue(_)                 ->  pr "true"
     | TmFalse(_)                ->  pr "false"
     | TmZero(fi)                ->  pr "0"

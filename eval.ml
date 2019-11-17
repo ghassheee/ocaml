@@ -15,6 +15,7 @@ let rec isnumericval ctx = function
 
 let rec isval ctx = function 
     | TmAbs(_,_,_,_)                -> true
+    | TmUnit(_)                     -> true
     | TmTrue(_)                     -> true
     | TmFalse(_)                    -> true
     | t when isnumericval ctx t     -> true

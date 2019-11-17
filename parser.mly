@@ -20,6 +20,10 @@ let pe = print_endline
  * constant values -- more info is provided. */
 
 /* Keyword tokens */
+%token <Support.Error.info> UNIT
+%token <Support.Error.info> UNITTYPE
+
+%token <Support.Error.info> WHERE
 %token <Support.Error.info> IN
 %token <Support.Error.info> LET
 
@@ -120,7 +124,7 @@ toplevel :  /* Right Recursion */
 
 /* Modules both for Interpreter and for Compiler */ 
 Command     :       /* A top-level command */ 
-    | Term                          { fun ctx   -> let t = $1 ctx in Eval(tmInfo t,t),ctx }
+    | TermWrap                          { fun ctx   -> let t = $1 ctx in Eval(tmInfo t,t),ctx }
     | LCID Binder                   { fun ctx   -> ((Bind($1.i,$1.v,$2 ctx)), addname ctx $1.v) } 
 Binder      : 
     | COLON Type                    { fun ctx   -> VarBind($2 ctx) } 
@@ -131,13 +135,19 @@ AType       :
     | LPAREN Type RPAREN            { $2 } 
     | BOOL                          { fun ctx   -> TyBool } 
     | NAT                           { fun ctx   -> TyNat  }
+    | UNITTYPE                      { fun ctx   -> TyUnit } 
 ArrowType   :
     | AType ARROW ArrowType         { fun ctx   -> TyArr($1 ctx, $3 ctx) }
     | AType                         { $1 } 
-
+TermWrap    :
+    | TermWrap COMMA LCID EQ Term   { fun ctx   -> TmLet($2, $3.v, $5 ctx, $1 (addname ctx $3.v)) }
+    | Term     WHERE LCID EQ Term   { fun ctx   -> TmLet($2, $3.v, $5 ctx, $1 (addname ctx $3.v)) }
+    | Term                          { $1 } 
 Term        :
     | AppTerm                       { $1 }
+    | Term COLON Term               { fun ctx   -> TmLet(dummyinfo, "_", $3 ctx, $1 ctx) } 
     | LET LCID EQ Term IN Term      { fun ctx   -> TmLet($1, $2.v, $4 ctx, $6 (addname ctx $2.v)) }
+    | LET USCORE EQ Term IN Term    { fun ctx   -> TmLet($1, "_", $4 ctx, $6 ctx) }
     | LAMBDA LCID COLON Type DOT Term   
         { pe "PARSER: λx:T.t"; fun ctx -> let ctx1=addname ctx $2.v in TmAbs($1,$2.v,$4 ctx,$6 ctx1)}
     | IF Term THEN Term ELSE Term   { fun ctx   -> TmIf($1, $2 ctx, $4 ctx, $6 ctx) }
@@ -150,6 +160,7 @@ AppTerm     :
 ATerm       :         /* Atomic terms are ones that never require extra parentheses */
     | LPAREN Term RPAREN            { pe "PARSER: ( t )"; $2 } 
     | LCID                          { fun ctx   -> TmVar($1.i, name2index $1.i ctx $1.v, ctxlength ctx) } 
+    | UNIT                          { fun ctx   -> TmUnit($1) } 
     | TRUE                          { fun ctx   -> TmTrue($1) }
     | FALSE                         { fun ctx   -> TmFalse($1) }
     | INTV                          { fun ctx   -> let rec f = function
