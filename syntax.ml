@@ -14,6 +14,8 @@ type ty     =
 ;;
 
 type term =
+    (* Ascription *) 
+    | TmAscribe of info * term * ty
     (* Unit *)
     | TmUnit    of info 
     (* Let  *)
@@ -89,6 +91,7 @@ let rec walk funOnVar c   = let f = funOnVar in function
     | TmSucc(fi,t)              -> TmSucc(fi, walk f c t) 
     | TmPred(fi,t)              -> TmPred(fi, walk f c t) 
     | TmIsZero(fi,t)            -> TmIsZero(fi, walk f c t)
+    | TmAscribe(fi,t,tyT)       -> TmAscribe(fi,walk f c t,tyT) 
     | x                         -> x
 
 let termShiftOnVar d        = fun fi c x n ->   if x>=c then TmVar(fi,x+d,n+d) else TmVar(fi,x,n+d)
@@ -116,6 +119,7 @@ let tmInfo  = function
     | TmSucc(fi,_)          -> fi
     | TmPred(fi,_)          -> fi
     | TmIsZero(fi,_)        -> fi 
+    | TmAscribe(fi,_,_)     -> fi 
 
 (* -------------------------------------------------- *) 
 (* Printing *)
@@ -165,13 +169,13 @@ let rec printtm_Term outer ctx  = function
         pr "then "; printtm_Term false ctx t2; ps();
         pr "else "; printtm_Term false ctx t3;
         cbox()
-
     | t                         -> printtm_AppTerm outer ctx t
 and printtm_AppTerm outer ctx   = function 
     | TmApp(fi, t1, t2)         ->  obox0(); printtm_AppTerm false ctx t1; ps(); 
                                     printtm_ATerm false ctx t2; cbox();
     | TmPred(_,t1)              ->  pr "pred ";     printtm_ATerm false ctx t1
     | TmIsZero(_,t1)            ->  pr "iszero ";   printtm_ATerm false ctx t1
+    | TmAscribe(fi,t,tyT)       ->  printtm_AppTerm outer ctx t
     | t                         ->  printtm_ATerm outer ctx t
 
 and printtm_ATerm outer ctx     = function 

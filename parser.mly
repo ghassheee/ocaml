@@ -20,6 +20,8 @@ let pe = print_endline
  * constant values -- more info is provided. */
 
 /* Keyword tokens */
+%token <Support.Error.info> AS
+
 %token <Support.Error.info> UNIT
 %token <Support.Error.info> UNITTYPE
 
@@ -30,15 +32,16 @@ let pe = print_endline
 %token <Support.Error.info> BOOL
 %token <Support.Error.info> NAT
 
+%token <Support.Error.info> SUCC
+%token <Support.Error.info> PRED
+%token <Support.Error.info> ISZERO
+
 %token <Support.Error.info> LAMBDA
 %token <Support.Error.info> IF
 %token <Support.Error.info> THEN
 %token <Support.Error.info> ELSE
 %token <Support.Error.info> TRUE
 %token <Support.Error.info> FALSE
-%token <Support.Error.info> SUCC
-%token <Support.Error.info> PRED
-%token <Support.Error.info> ISZERO
 
 /* Identifier and constant value tokens */
 %token <string  Support.Error.withinfo> UCID  /* uppercase-initial */
@@ -99,8 +102,8 @@ let pe = print_endline
 input : /* Left Recursion */
     |                               { fun ctx   -> [],ctx  }
     | input block                   { fun ctx   -> 
-                                        let blks,ctx = $1 ctx in 
-                                        let blk,ctx = $2 ctx in 
+                                        let blks,ctx    = $1 ctx in 
+                                        let blk,ctx     = $2 ctx in 
                                         (List.append blks blk, ctx) } 
 block :     /* Left Recursion */                    
     | Command                       { fun ctx   -> let cmd,ctx = $1 ctx in [cmd],ctx }             
@@ -125,47 +128,50 @@ toplevel :  /* Right Recursion */
 /* Modules both for Interpreter and for Compiler */ 
 Command     :       /* A top-level command */ 
     | TermWrap                          { fun ctx   -> let t = $1 ctx in Eval(tmInfo t,t),ctx }
-    | LCID Binder                   { fun ctx   -> ((Bind($1.i,$1.v,$2 ctx)), addname ctx $1.v) } 
+    | LCID Binder                       { fun ctx   -> ((Bind($1.i,$1.v,$2 ctx)), addname ctx $1.v) } 
 Binder      : 
-    | COLON Type                    { fun ctx   -> VarBind($2 ctx) } 
+    | COLON Type                        { fun ctx   -> VarBind($2 ctx) } 
 
 Type        : 
-    | ArrowType                     { $1 } 
+    | ArrowType                         { $1 } 
 AType       : 
-    | LPAREN Type RPAREN            { $2 } 
-    | BOOL                          { fun ctx   -> TyBool } 
-    | NAT                           { fun ctx   -> TyNat  }
-    | UNITTYPE                      { fun ctx   -> TyUnit } 
+    | LPAREN Type RPAREN                { $2 } 
+    | BOOL                              { fun ctx   -> TyBool } 
+    | NAT                               { fun ctx   -> TyNat  }
+    | UNITTYPE                          { fun ctx   -> TyUnit } 
 ArrowType   :
-    | AType ARROW ArrowType         { fun ctx   -> TyArr($1 ctx, $3 ctx) }
-    | AType                         { $1 } 
+    | AType ARROW ArrowType             { fun ctx   -> TyArr($1 ctx, $3 ctx) }
+    | AType                             { $1 } 
 TermWrap    :
-    | TermWrap COMMA LCID EQ Term   { fun ctx   -> TmLet($2, $3.v, $5 ctx, $1 (addname ctx $3.v)) }
-    | Term     WHERE LCID EQ Term   { fun ctx   -> TmLet($2, $3.v, $5 ctx, $1 (addname ctx $3.v)) }
-    | Term                          { $1 } 
+    | TermWrap COMMA LCID EQ Term       { fun ctx   -> TmLet($2, $3.v, $5 ctx, $1 (addname ctx $3.v)) }
+    | Term     WHERE LCID EQ Term       { fun ctx   -> TmLet($2, $3.v, $5 ctx, $1 (addname ctx $3.v)) }
+    | Term                              { $1 } 
 Term        :
-    | AppTerm                       { $1 }
-    | Term COLON Term               { fun ctx   -> TmLet(dummyinfo, "_", $3 ctx, $1 ctx) } 
-    | LET LCID EQ Term IN Term      { fun ctx   -> TmLet($1, $2.v, $4 ctx, $6 (addname ctx $2.v)) }
-    | LET USCORE EQ Term IN Term    { fun ctx   -> TmLet($1, "_", $4 ctx, $6 ctx) }
+    | AppTerm                           { $1 }
+    | Term COLON Term                   { fun ctx   -> TmLet($2, "_", $3 ctx, $1 ctx) } 
+    | LET LCID EQ Term IN Term          { fun ctx   -> TmLet($1, $2.v, $4 ctx, $6 (addname ctx $2.v)) }
+    | LET USCORE EQ Term IN Term        { fun ctx   -> TmLet($1, "_", $4 ctx, $6 ctx) }
     | LAMBDA LCID COLON Type DOT Term   
-        { pe "PARSER: λx:T.t"; fun ctx -> let ctx1=addname ctx $2.v in TmAbs($1,$2.v,$4 ctx,$6 ctx1)}
-    | IF Term THEN Term ELSE Term   { fun ctx   -> TmIf($1, $2 ctx, $4 ctx, $6 ctx) }
+        { pe "PARSER: λx:T.t"; fun ctx -> TmAbs($1,$2.v,$4 ctx,$6 (addname ctx $2.v))}
+    | IF Term THEN Term ELSE Term       { fun ctx   -> TmIf($1, $2 ctx, $4 ctx, $6 ctx) }
 AppTerm     :
-    | ATerm                         { $1 }
-    | SUCC ATerm                    { fun ctx   -> TmSucc($1, $2 ctx ) }
-    | PRED ATerm                    { fun ctx   -> TmPred($1, $2 ctx ) }
-    | ISZERO ATerm                  { fun ctx   -> TmIsZero($1, $2 ctx) }
-    | AppTerm ATerm                 { fun ctx   -> let e1=$1 ctx in TmApp(tmInfo e1,e1,$2 ctx) }
+    | AscribeTerm                       { $1 }
+    | SUCC ATerm                        { fun ctx   -> TmSucc($1, $2 ctx ) }
+    | PRED ATerm                        { fun ctx   -> TmPred($1, $2 ctx ) }
+    | ISZERO ATerm                      { fun ctx   -> TmIsZero($1, $2 ctx) }
+    | AppTerm AscribeTerm               { fun ctx   -> let e1=$1 ctx in TmApp(tmInfo e1,e1,$2 ctx) }
+AscribeTerm : 
+    | ATerm AS Type                     { fun ctx   -> TmAscribe($2, $1 ctx, $3 ctx) } 
+    | ATerm                             { $1 } 
 ATerm       :         /* Atomic terms are ones that never require extra parentheses */
-    | LPAREN Term RPAREN            { pe "PARSER: ( t )"; $2 } 
-    | LCID                          { fun ctx   -> TmVar($1.i, name2index $1.i ctx $1.v, ctxlength ctx) } 
-    | UNIT                          { fun ctx   -> TmUnit($1) } 
-    | TRUE                          { fun ctx   -> TmTrue($1) }
-    | FALSE                         { fun ctx   -> TmFalse($1) }
-    | INTV                          { fun ctx   -> let rec f = function
+    | LPAREN Term RPAREN                { pe "PARSER: ( t )"; $2 } 
+    | LCID                              { fun ctx   -> TmVar($1.i, name2index $1.i ctx $1.v, ctxlength ctx) } 
+    | UNIT                              { fun ctx   -> TmUnit($1) } 
+    | TRUE                              { fun ctx   -> TmTrue($1) }
+    | FALSE                             { fun ctx   -> TmFalse($1) }
+    | INTV                              { fun ctx   -> let rec f = function
               0 -> TmZero($1.i)
-            | n -> pe "succ"; TmSucc($1.i, f (n-1))
+            | n -> pe "PARSER: succ"; TmSucc($1.i, f (n-1))
           in f $1.v }
 
 

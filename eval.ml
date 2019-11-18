@@ -8,9 +8,9 @@ open Type
 
 exception NoRuleApplies
 
-let rec isnumericval ctx = function 
+let rec isnum ctx = function 
     | TmZero(_)         -> true
-    | TmSucc(_,t1)      -> isnumericval ctx t1
+    | TmSucc(_,t1)      -> isnum ctx t1
     | _                 -> false
 
 let rec isval ctx = function 
@@ -18,25 +18,27 @@ let rec isval ctx = function
     | TmUnit(_)                     -> true
     | TmTrue(_)                     -> true
     | TmFalse(_)                    -> true
-    | t when isnumericval ctx t     -> true
+    | t when isnum ctx t     -> true
     | _                             -> false
 
 let rec eval1 ctx = function 
-    | TmLet(fi,x,t1,t2)                 ->  TmApp(fi,TmAbs(fi,x,typeof ctx t1,t2),t1)  
+    | TmAscribe(fi,v,tyT)when isval ctx v   ->  v
+    | TmAscribe(fi,t,tyT)                   ->  TmAscribe(fi,eval1 ctx t,tyT) 
+    | TmLet(fi,x,t1,t2)                     ->  TmApp(fi,TmAbs(fi,x,typeof ctx t1,t2),t1)  
     | TmApp(fi,TmAbs(_,x,tyT11,t12),v2) when isval ctx v2 
-                                        ->  termSubstTop v2 t12 
-    | TmApp(fi,v1,t2) when isval ctx v1 ->  TmApp(fi,v1,eval1 ctx t2) 
-    | TmApp(fi,t1,t2)                   ->  TmApp(fi,eval1 ctx t1,t2) 
-    | TmIf(_,TmTrue(_),t2,t3)           ->  t2
-    | TmIf(_,TmFalse(_),t2,t3)          ->  t3
-    | TmIf(fi,t1,t2,t3)                 ->  let t1' = eval1 ctx t1 in TmIf(fi, t1', t2, t3)
-    | TmSucc(fi,t1)                     ->  let t1' = eval1 ctx t1 in TmSucc(fi, t1')
-    | TmPred(_,TmZero(_))               ->  TmZero(dummyinfo)
-    | TmPred(_,TmSucc(_,nv1)) when (isnumericval ctx nv1) 
-                                        ->  nv1
-    | TmPred(fi,t1)                     ->  TmPred(fi, eval1 ctx t1)
-    | TmIsZero(_,TmZero(_))             ->  TmTrue(dummyinfo)
-    | TmIsZero(_,TmSucc(_,nv1)) when (isnumericval ctx nv1) 
+                                            ->  termSubstTop v2 t12 
+    | TmApp(fi,v1,t2) when isval ctx v1     ->  TmApp(fi,v1,eval1 ctx t2) 
+    | TmApp(fi,t1,t2)                       ->  TmApp(fi,eval1 ctx t1,t2) 
+    | TmIf(_,TmTrue(_),t2,t3)               ->  t2
+    | TmIf(_,TmFalse(_),t2,t3)              ->  t3
+    | TmIf(fi,t1,t2,t3)                     ->  let t1' = eval1 ctx t1 in TmIf(fi, t1', t2, t3)
+    | TmSucc(fi,t1)                         ->  let t1' = eval1 ctx t1 in TmSucc(fi, t1')
+    | TmPred(_,TmZero(_))                   ->  TmZero(dummyinfo)
+    | TmPred(_,TmSucc(_,nv1)) when (isnum ctx nv1) 
+                                            ->  nv1
+    | TmPred(fi,t1)                         ->  TmPred(fi, eval1 ctx t1)
+    | TmIsZero(_,TmZero(_))                 ->  TmTrue(dummyinfo)
+    | TmIsZero(_,TmSucc(_,nv1)) when (isnum ctx nv1) 
                                         ->  TmFalse(dummyinfo)
     | TmIsZero(fi,t1)                   ->  let t1' = eval1 ctx t1 in TmIsZero(fi, t1')
     | _                                 ->  raise NoRuleApplies

@@ -9,6 +9,7 @@ exception NoRuleApplies
 
 
 (* ----------- TYPING --------------- *) 
+let rec tyeqv ctx tyT tyS   = true
 
 let rec typeof ctx   t      = pr "TYPEOF: ";printtm ctx t;print_newline ();  match t with
     | TmVar(fi,i,_)             -> getTypeFromContext fi ctx i 
@@ -34,6 +35,7 @@ let rec typeof ctx   t      = pr "TYPEOF: ";printtm ctx t;print_newline ();  mat
                 let tyT2 = typeof ctx t2 in
                 if (=) tyT2 (typeof ctx t3) then tyT2 else error fi "resulting type of if statement mismatch" 
                 else error fi "if-condition expects a boolean" 
+    | TmAscribe(fi,t,tyT)       -> if (=) (typeof ctx t) tyT then tyT else error fi "Type Ascription Mismatch"       
 
 
 (* ---- *) 

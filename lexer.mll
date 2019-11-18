@@ -3,7 +3,8 @@ open Support.Error
 
 let reservedWords = [
   (* Keywords *)
-    ("unit",      fun i -> Parser.UNIT i);
+    ("as",      fun i -> Parser.AS i);
+    ("unit",    fun i -> Parser.UNIT i);
     ("Unit",    fun i -> Parser.UNITTYPE i);
     ("where",   fun i -> Parser.WHERE i);
     ("in",      fun i -> Parser.IN i);
@@ -129,6 +130,7 @@ let comment_end = "*/"
 
 rule token = parse
   tabs+                 { token lexbuf }
+| "()"                  { Parser.UNIT(info lexbuf) }
 | nl                    { newline lexbuf; token lexbuf }
 | digit+                { Parser.INTV{i=info lexbuf; v=int_of_string (text lexbuf)} }
 | digit+ '.' digit+     { Parser.FLOATV{i=info lexbuf; v=float_of_string (text lexbuf)} }
