@@ -72,11 +72,10 @@ let _                       =   List.iter (fun (str,f) -> Hashtbl.add symbolTabl
 let isInitialCapital str    = let s = String.get str 0 in s >= 'A' && s <= 'Z'  
 
 let createID i str          =   (* info -> string -> token *)
-  try (Hashtbl.find symbolTable str) i
-  with _ -> 
-      if isInitialCapital str 
-        then Parser.UCID {i=i;v=str} 
-        else Parser.LCID {i=i;v=str}
+  try   Hashtbl.find symbolTable str i
+  with _ -> if isInitialCapital str 
+                then Parser.UCID {i=i;v=str} 
+                else Parser.LCID {i=i;v=str}
 
 let lineno                  =   ref 1
 and depth                   =   ref 0

@@ -10,6 +10,7 @@
 module Pervasive : sig
   val pr : string -> unit
   val ps : unit -> unit
+  val getbinding_err_msg : int -> int -> string
 end  
 
 (* ------------------------------------------------------------------------ *)

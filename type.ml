@@ -11,19 +11,24 @@ exception NoRuleApplies
 (* ----------- TYPING --------------- *) 
 let rec tyeqv ctx tyT tyS   = true
 
-let rec typeof ctx   t      = pr "TYPEOF: ";printtm ctx t;print_newline ();  match t with
-    | TmVar(fi,i,_)             -> getTypeFromContext fi ctx i 
-    | TmLet(fi,x,t1,t2)         -> typeof ctx (TmApp(fi,TmAbs(fi,x,typeof ctx t1,t2),t1))
+let rec typeof ctx   t      = pr "TYPEOF: ";pr_tm ctx t;print_newline ();  match t with
+    | TmVar(fi,i,_)             -> getTypeFromContext fi ctx i  (*   x:T ∈ Γ ⇒  Γ ∣- x : T   T-Var  *) 
+    | TmLet(fi,x,t1,t2)         -> typeof ctx(TmApp(fi,TmAbs(fi,x,typeof ctx t1,t2),t1))
     | TmAbs(fi,x,tyT1,t2)       -> 
-            let ctx'    = addbinding ctx x (VarBind(tyT1)) in 
-            let tyT2    = typeof ctx' t2 in
-            TyArr(tyT1,tyT2) 
-    | TmApp(fi,t1,t2)           -> 
-            let tyT1 = typeof ctx t1 in 
-            let tyT2 = typeof ctx t2 in 
-            (match tyT1 with 
+            let ctx'    = addbinding ctx x (VarBind(tyT1)) in   (*       Γ,x:T1 ∣- t2 : T2          *)  
+            let tyT2    = typeof ctx' t2 in                     (*     --------------------- T-Abs  *)
+            TyArr(tyT1,tyT2)                                    (*     Γ ∣- λx:T1.t2 : T1→T2        *)
+    | TmApp(fi,t1,t2)           ->      
+            let tyT1 = typeof ctx t1 in                 (*   Γ |- t1 : T2→T12 ∧ Γ ∣- t2 : T2        *)
+            let tyT2 = typeof ctx t2 in                 (*   ------------------------------- T-App  *)
+            (match tyT1 with                            (*         Γ ∣- t1 t2 : T12                 *)   
                 | TyArr(tyT11,tyT12)    -> if (=) tyT2 tyT11 then tyT12 else error fi "type mismatch" 
                 | _                     -> error fi "arrow type expected" )
+    | TmRecord(fi,flds)         -> TyRecord(List.map (fun(l,t)->(l,typeof ctx t)) flds) (*   T-Rcd  *)
+    | TmProj(fi,t,l)            -> (match typeof ctx t with 
+        | TyRecord(tyflds)          ->  (try List.assoc l tyflds 
+                                        with Not_found -> error fi ("label "^l^" not found")) 
+        | _                         ->  error fi "Record Type Expected" ) 
     | TmUnit(fi)                -> TyUnit
     | TmTrue(fi)                -> TyBool
     | TmFalse(fi)               -> TyBool
@@ -42,7 +47,7 @@ let rec typeof ctx   t      = pr "TYPEOF: ";printtm ctx t;print_newline ();  mat
 
 let prbindingty ctx = function
     | NameBind                  -> ()
-    | VarBind(tyT)              -> pr ": "; printty tyT 
+    | VarBind(tyT)              -> pr ": "; pr_ty tyT 
 
 
 
