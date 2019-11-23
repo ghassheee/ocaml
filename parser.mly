@@ -162,10 +162,9 @@ Term        :
     | AppTerm                           { $1 }
     | Term COLON Term                   { fun ctx   -> TmLet($2, "_", $3 ctx, $1 ctx) } 
     | Term DOT LCID                     { fun ctx   -> TmProj($2, $1 ctx, $3.v) }
-    | LET LCID EQ Term IN Term          { fun ctx   -> TmLet($1, $2.v, $4 ctx, $6 (addname ctx $2.v)) }
-    | LET USCORE EQ Term IN Term        { fun ctx   -> TmLet($1, "_", $4 ctx, $6 ctx) }
-    | LAMBDA LCID COLON Type DOT Term   
-        { pe "PARSER: λx:T.t"; fun ctx -> TmAbs($1,$2.v,$4 ctx,$6 (addname ctx $2.v))}
+    | LET LCID EQ Term IN Term          { fun ctx -> TmLet($1,$2.v,$4 ctx,$6(addname ctx $2.v)) }
+    | LET USCORE EQ Term IN Term        { fun ctx -> TmLet($1, "_", $4 ctx, $6 ctx) }
+    | LAMBDA LCID COLON Type DOT Term   { fun ctx -> TmAbs($1,$2.v,$4 ctx,$6 (addname ctx $2.v))}
     | IF Term THEN Term ELSE Term       { fun ctx   -> TmIf($1, $2 ctx, $4 ctx, $6 ctx) }
 AppTerm     :
     | AscribeTerm                       { $1 }
@@ -177,16 +176,16 @@ AscribeTerm :
     | ATerm AS Type                     { fun ctx   -> TmAscribe($2, $1 ctx, $3 ctx) } 
     | ATerm                             { $1 } 
 ATerm       :         /* Atomic terms are ones that never require extra parentheses */
-    | LPAREN Term RPAREN                { pe "PARSER: ( t )"; $2 } 
+    | LPAREN Term RPAREN                { $2 } 
     | LCURLY Fields RCURLY              { fun ctx   -> TmRecord($1, $2 ctx 1)}
     | LCID                              { fun ctx   -> TmVar($1.i, name2index $1.i ctx $1.v, ctxlen ctx) } 
     | UNIT                              { fun ctx   -> TmUnit($1) } 
     | TRUE                              { fun ctx   -> TmTrue($1) }
     | FALSE                             { fun ctx   -> TmFalse($1) }
-    | INTV                              { fun ctx   -> let rec f = function
-              0 -> TmZero($1.i)
-            | n -> pe "PARSER: succ"; TmSucc($1.i, f (n-1))
-          in f $1.v }
+    | INTV                              { fun ctx   ->  let rec f = function
+                                                        | 0 -> TmZero($1.i)
+                                                        | n -> TmSucc($1.i, f(n-1))
+                                                        in f $1.v }
 Fields      : 
     | /* empty */                       { fun ctx   -> fun i -> [] } 
     | NEFields                          { $1 } 

@@ -84,29 +84,29 @@ let getTypeFromContext fi ctx n =   match getbinding fi n ctx with
 (* -------------------------------------------------- *) 
 (* Shifting *)
 
-let rec walk funOnVar c   = let f = funOnVar in function 
+let rec walk funOnVar c t = let f = funOnVar in match t with 
     | TmVar(fi,x,n)             -> funOnVar fi c x n
     | TmLet(fi,x,t1,t2)         -> TmLet(fi,x,walk f c t1, walk f(c+1)t2) 
     | TmAbs(fi,x,tyT,t2)        -> TmAbs(fi,x,tyT,walk f(c+1)t2)
-    | TmApp(fi,t1,t2)           -> TmApp(fi, walk f c t1, walk f c t2) 
+    | TmApp(fi,t1,t2)           -> TmApp(fi,walk f c t1, walk f c t2) 
     | TmIf(fi,t1,t2,t3)         -> TmIf(fi,walk f c t1, walk f c t2, walk f c t3) 
-    | TmSucc(fi,t)              -> TmSucc(fi, walk f c t) 
-    | TmPred(fi,t)              -> TmPred(fi, walk f c t) 
-    | TmIsZero(fi,t)            -> TmIsZero(fi, walk f c t)
+    | TmSucc(fi,t)              -> TmSucc(fi,walk f c t) 
+    | TmPred(fi,t)              -> TmPred(fi,walk f c t) 
+    | TmIsZero(fi,t)            -> TmIsZero(fi,walk f c t)
     | TmAscribe(fi,t,tyT)       -> TmAscribe(fi,walk f c t,tyT) 
-    | TmRecord(fi,tl)           -> TmRecord(fi, List.map (fun(str,t)->(str,walk f c t)) tl)  
+    | TmRecord(fi,tl)           -> TmRecord(fi,List.map(fun(l,t)->(l,walk f c t))tl)  
     | TmProj(fi,t,i)            -> TmProj(fi,walk f c t,i) 
     | x                         -> x
 
 let termShiftOnVar d        = fun fi c x n ->   if x>=c then TmVar(fi,x+d,n+d) else TmVar(fi,x,n+d)
 let termShiftAbove d        = walk (termShiftOnVar d)
-let termShift d             = if d>=0 then print_endline ("SHIFT: "^(soi d));termShiftAbove d 0 
+let termShift d             = if d>=0 then pe("SHIFT         : "^(soi d));termShiftAbove d 0 
 
 (* -------------------------------------------------- *) 
 (* Substitution *) 
 let termSubstOnVar j s t    = fun fi c x n ->   if x=j+c then termShift c s else TmVar(fi, x, n) 
 let termSubst j s t         = walk (termSubstOnVar j s t) 0 t
-let termSubstTop s t        = print_endline "SUBSTITUTE: "; termShift (-1) (termSubst 0 (termShift 1 s) t) 
+let termSubstTop s t        = pe"SUBSTITUTE    : [x↦s]t"; termShift (-1) (termSubst 0 (termShift 1 s) t) 
 
 (* -------------------------------------------------- *) 
 (* Extracting file info *)

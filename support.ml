@@ -1,10 +1,10 @@
 open Format
 
 
-let pe  = print_endline
 let pi  = print_int
 let pr  = print_string
 let ps  = print_space
+let pe  = print_endline
 let pn  = print_newline
 let cut = print_cut
 
@@ -35,6 +35,8 @@ module Pervasive = struct
 
     type info                   = Error.info
     let pr                      = Format.print_string
+    let pe                      = print_endline
+    let pn                      = print_newline
     let ps                      = Format.print_space
     let getbinding_err_msg      =  
         Printf.sprintf "getbinding: Variable lookup failure: offset:%d,ctx size:%d" 

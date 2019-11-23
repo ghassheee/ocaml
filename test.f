@@ -8,3 +8,5 @@ if false then true else false;
 (\x:Bool->Bool. x false) (\x:Bool.x) ;
 (\x:Bool.x) true;
 iszero (pred (succ (succ 0)));
+
+let proj_x = (\r:{x:Nat,y:Nat}.r.x) in proj_x {x=2,y=1} ; 
