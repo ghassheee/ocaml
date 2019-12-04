@@ -1,10 +1,9 @@
 open Format
-open Core
 open Support.Pervasive
 open Support.Error
 open Syntax
-open Arg 
 
-
+val tyeqv           : context -> ty -> ty -> bool
 val typeof          : context -> term -> ty
-val prbindingty     : context -> binding -> unit 
+val prbindty        : context -> bind -> unit 
+val simplifyty      : context -> ty -> ty 

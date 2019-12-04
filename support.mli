@@ -8,11 +8,13 @@
 (* Some pervasive abbreviations -- opened everywhere by convention *)
 
 module Pervasive : sig
-  val pr : string -> unit
-  val ps : unit -> unit
-  val pe : string -> unit 
-  val pn : unit -> unit
-  val getbinding_err_msg : int -> int -> string
+  val pr : string   -> unit
+  val ps                : unit      -> unit
+  val pe                : string    -> unit 
+  val pn                : unit      -> unit
+  val pi                : int       -> unit 
+  val pb                : int -> int -> unit 
+  val getbind_err_msg   : int -> int -> string
 end  
 
 (* ------------------------------------------------------------------------ *)

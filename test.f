@@ -1,12 +1,23 @@
-/* test.f */ 
-
-/* if (true) then (succ 10) else (succ 11); */ 
 
 true;
-if false then true else false; 
+if false then true else false;
 
-(\x:Bool->Bool. x false) (\x:Bool.x) ;
+(\x:Bool->Bool.x false) (\x:Bool.x) ;
 (\x:Bool.x) true;
-iszero (pred (succ (succ 0)));
+iszero (pred (succ 2));
 
-let proj_x = (\r:{x:Nat,y:Nat}.r.x) in proj_x {x=2,y=1} ; 
+let projx = (\r:{x:Nat,y:Nat,z:Nat}.r.x) in projx {x=2,y=4,z=1} ;
+(\x:String.x) "hoge";
+
+case <some=1> as <some:Nat,none:Unit> of <some=a> => succ a | <none=y> => 0; 
+let g = (\x:Nat.succ x) in g 1;
+let f = (\x : <some:Nat,none:Unit>. case x of <some=a> => succ a | <none=y> => 0) in 
+f (<some=1> as <some:Nat,none:Unit>) ; 
+
+X = Nat; 
+(\x:X.succ x) 1;
+Y = X -> X; 
+s = (\x:X.succ x);
+double = \f:Y.\x:X.f(f x);
+double s 1;
+

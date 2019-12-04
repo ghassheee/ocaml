@@ -37,9 +37,11 @@ module Pervasive = struct
     let pr                      = Format.print_string
     let pe                      = print_endline
     let pn                      = print_newline
-    let ps                      = Format.print_space
-    let getbinding_err_msg      =  
-        Printf.sprintf "getbinding: Variable lookup failure: offset:%d,ctx size:%d" 
+    let pi                      = print_int
+    let ps                      = print_space
+    let pb                      = Format.print_break
+    let getbind_err_msg         =  
+        Printf.sprintf "getbind: Variable lookup failure: offset:%d,ctx size:%d" 
 
 end 
 
