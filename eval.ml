@@ -91,8 +91,11 @@ let rec process_command ctx = function
 
 
 let rec process_commands ctx = function 
-    | []                        -> () 
-    | cmd::cmds                 -> oobox0;let ctx' = process_command ctx cmd in Format.print_flush();process_commands ctx' cmds 
+    | []                        ->  ctx 
+    | cmd::cmds                 ->  oobox0;
+                                    let ctx' = process_command ctx cmd in 
+                                    Format.print_flush();
+                                    process_commands ctx' cmds 
 
 
 

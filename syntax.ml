@@ -238,7 +238,7 @@ and pr_AType outer ctx      = function
     | TyBool                    ->  pr "𝐁" 
     | TyNat                     ->  pr "𝐍"
     | TyUnit                    ->  pr "𝐔"
-    | TyVar(i,n)                ->  if ctxlen ctx = n then pr(index2name dummyinfo ctx i)else pr"[bad index]"  
+    | TyVar(i,n)                ->  if ctxlen ctx = n then pr(index2name dummyinfo ctx i)else pr"[BadIndex]"  
     | TyVariant(flds)           ->  pr"<"; oobox0(); pr_fldtys pr_Type outer ctx 1 flds; pr">"; cbox()
     | TyRecord(flds)            ->  pr"{"; oobox0(); pr_fldtys pr_Type outer ctx 1 flds; pr"}"; cbox()
     | tyT                       ->  pr"("; pr_Type outer ctx tyT; pr ")"
@@ -283,9 +283,10 @@ and pr_PathTerm outer ctx   = function
     | t                         ->  pr_ATerm outer ctx t
 
 and pr_ATerm outer ctx     = function 
-    | TmVar(fi,x,n)             -> if ctxlen ctx = n 
-        then pr (index2name fi ctx x)
-        else (pr"[BadIndex: ";pi x;pr"/";pi n;pr" in {";pr(List.fold_left(fun s(x,_)->s^" "^x)""ctx);pr" }]")  
+    | TmVar(fi,x,n)             -> let l = ctxlen ctx in 
+        if l = n 
+            then pr (index2name fi ctx x)
+            else (pr"[Context Error: ";pi l;pr"!=";pi n;pr" in { Γ:";pr(List.fold_left(fun s(x,_)->s^" "^x)""ctx);pr" }]")  
     | TmTag(fi,l,t,tyT)         ->  obox(); 
         pr"<";pr l;pr"=";pr_Term false ctx t;pr">";ps();pr" : ";pr_Type outer ctx tyT;  cbox()
     | TmString(_,s)             ->  pr "\"";pr s; pr"\""
@@ -303,3 +304,20 @@ and pr_ATerm outer ctx     = function
 
 let pr_tm t = pr_Term true t 
 
+
+
+let pr_bind = function 
+    | BindName                  -> pr"NEW NAME"
+    | BindTmAbb(_,_)            -> pr"ABB TERM" 
+    | BindTyAbb(_)              -> pr"ABB TYPE" 
+    | BindTmVar(_)              -> pr"NEW TERM" 
+    | BindTyVar                 -> pr"NEW TYPE" 
+
+let pr_ctx ctx =
+    pn();
+    pe "xxxx CONTEXT Γ xxxxxxxxxxxxxx";
+    let rec f = function 
+        | []                  -> pe" NOTHING MORE "  
+        | ((str,bind)::rest)  -> pr" ( ";pr str;pr", ";pr_bind bind;pr" )";pn();f rest in 
+    f ctx ; 
+    pe "xxxxxxxxxxxxxxxxxxxxxxxxxxxxx"; pn()

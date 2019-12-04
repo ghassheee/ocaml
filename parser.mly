@@ -18,6 +18,9 @@ let pe = print_endline
  * constant values -- more info is provided. */
 
 /* Keyword tokens */
+%token <Support.Error.info> SHOWCONTEXT
+
+
 %token <Support.Error.info> STRING
 %token <Support.Error.info> FLOAT
 %token <Support.Error.info> TIMESFLOAT
@@ -105,14 +108,18 @@ let pe = print_endline
 %%
 /************   REPL   ***************************************************************************/
 input :   /* Left Recursion */
-    |                                   { fun ctx   ->  [],ctx                                  }
+    |                                   { fun ctx   ->  [],[]                                   }
+    | input SHOWCONTEXT DOUBLESEMI      { let _,ctx' = $1 [] in pr_ctx ctx';
+                                          fun ctx   ->  [],ctx'                                 }  
     | input DOUBLESEMI                  { fun ctx   ->  [],ctx                                  } 
-    | input oneREPL                     { let cmds,ctx = $2[]in process_commands emptyctx cmds; 
-                                          fun ctx   ->  [],ctx                                  } 
+    | input oneREPL                     { let _,ev_ctx  = $1 [] in  
+                                          let cmds,_    = $2 ev_ctx in 
+                                          let ev_ctx'   = process_commands ev_ctx cmds in 
+                                          fun ctx   ->  [],ev_ctx'                              } 
 oneREPL : 
-    | Command DOUBLESEMI                { fun ctx   ->  let cmd,ctx = $1 ctx in [cmd],ctx } 
-    | Command SEMI oneREPL              { fun ctx   ->  let cmd,ctx = $1 ctx in 
-                                                        let cmds,ctx = $3 ctx in cmd::cmds,ctx  }
+    | Command DOUBLESEMI                { fun ctx   ->  let cmd,ctx'    = $1 ctx in [cmd],ctx'  } 
+    | Command SEMI oneREPL              { fun ctx   ->  let cmd,ctx'    = $1 ctx in 
+                                                        let cmds,ctx''  = $3 ctx' in cmd::cmds,ctx''  }
 /************  COMPILER  *************************************************************************/
 toplevel : /* Right Recursion */                
     | EOF                               { fun ctx   ->  [],ctx                                  } 

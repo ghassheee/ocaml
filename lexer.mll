@@ -129,6 +129,7 @@ let comment                 = "/*"
 let comment_end             = "*/"  
 
 rule token              = parse
+| "#show"                   { show lexbuf                                           }   
 | tabs+                     { token lexbuf                                          }
 | "()"                      { Parser.UNIT(info lexbuf)                              }
 | nl                        { newline lexbuf; token lexbuf                          }
@@ -146,6 +147,10 @@ rule token              = parse
 | comment_end               { error (info lexbuf) "Unmatched end of comment"        } 
 | comment                   { depth:=1;startLex:=info lexbuf;comment lexbuf;token lexbuf } 
 | _                         { error (info lexbuf) "Illegal character"               }
+
+and show                = parse
+| "context"                 { Parser.SHOWCONTEXT(info lexbuf)                       }
+| _                       { show lexbuf   }
 
 and comment             = parse
 | comment                   { depth:=succ !depth; comment lexbuf                    } 

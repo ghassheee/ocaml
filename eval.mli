@@ -5,4 +5,4 @@ open Syntax
 
 val eval            : context -> term -> term 
 val process_command : context -> command -> context 
-val process_commands: context -> command list -> unit
+val process_commands: context -> command list -> context 
