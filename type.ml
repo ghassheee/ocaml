@@ -43,6 +43,9 @@ let rec tyeqv ctx tyS tyT   =
 (* ----------- TYPING --------------- *) 
 
 let rec typeof ctx   t      = let p str = pr str;pr"(∣Γ∣=";pi(ctxlen ctx);pr") ";pr_tm ctx t;pn() in match t with
+    | TmFix(fi,t1)              ->  p "T-FIX         : "; (match typeof ctx t1 with 
+            | TyArr(tyS,tyT)        -> if tyeqv ctx tyS tyT then tyT else error fi"fix can take 'x' whose type: A -> A" 
+            | _                     -> error fi"fix can only take x whose type is A -> A"  )
     | TmTag(fi,l,t1,(TyVariant(fldtys) as tyT)) ->  
                                     p "T-VARIANT     : "; let tyT1 = typeof ctx t1 in
                                     if(tyeqv ctx)tyT1(List.assoc l fldtys)then tyT else error fi"Variant Type Mismatch"

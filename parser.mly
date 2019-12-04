@@ -11,15 +11,22 @@ open Eval
 let pe = print_endline 
 %}
 
-/* All token has info type 
- * So the declaration of a token is;
- *      %token <info> IF 
- * and sometime, -- in the case of identifiers and 
- * constant values -- more info is provided. */
 
-/* Keyword tokens */
+/* REPL Methods */ 
+
 %token <Support.Error.info> SHOWCONTEXT
 
+
+/* Keyword tokens */
+%token <Support.Error.info> LIST
+%token <Support.Error.info> TAIL
+%token <Support.Error.info> HEAD
+%token <Support.Error.info> ISNIL
+%token <Support.Error.info> CONS
+%token <Support.Error.info> NIL
+
+%token <Support.Error.info> LETREC 
+%token <Support.Error.info> FIX 
 
 %token <Support.Error.info> STRING
 %token <Support.Error.info> FLOAT
@@ -154,6 +161,9 @@ AType       :
     | UNITTYPE                          { fun ctx   ->  TyUnit                                  } 
     | LCURLY TyFields RCURLY            { fun ctx   ->  TyRecord($2 ctx 1)                      }
     | LT TyFields GT                    { fun ctx   ->  TyVariant($2 ctx 1)                     } 
+    | LIST Type                         { fun ctx   ->  TyList($2 ctx)                          }
+LType       :
+    | LSQUARE Type RSQUARE              { fun ctx   ->  TyList($2 ctx)                          } 
 TyFields    :
     | /* Empty Type */                  { fun ctx   ->  fun i -> []                             } 
     | NETyFields                        { $1                                                    }
@@ -182,9 +192,17 @@ Term        :
     | LET USCORE EQ Term IN Term        { fun ctx   ->  TmLet($1,"_",$4 ctx,$6(addname ctx"_")) }
     | LAMBDA LCID COLON Type DOT Term   { fun ctx   ->  TmAbs($1,$2.v,$4 ctx,$6(addname ctx $2.v))}
     | IF Term THEN Term ELSE Term       { fun ctx   ->  TmIf($1,$2 ctx,$4 ctx,$6 ctx)           }
+    | LETREC LCID COLON Type EQ Term IN Term
+                                        { fun ctx   ->  let ctx' = addname ctx $2.v in 
+                                                        TmLet($1,$2.v,TmFix($1,TmAbs($1,$2.v,$4 ctx,$6 ctx')),$8 ctx')}
+    | CONS LType ATerm ATerm            { fun ctx   ->  TmCons($1,$2 ctx,$3 ctx,$4 ctx)         } 
+    | HEAD LType ATerm                  { fun ctx   ->  TmHead($1,$2 ctx,$3 ctx)                } 
+    | TAIL LType ATerm                  { fun ctx   ->  TmTail($1,$2 ctx,$3 ctx)                } 
+    | ISNIL LType ATerm                 { fun ctx   ->  TmIsNil($1,$2 ctx,$3 ctx)               } 
 AppTerm     :
     | AscribeTerm                       { $1                                                    }
     | ATerm TIMESFLOAT ATerm            { fun ctx   ->  TmTimesfloat($2,$1 ctx,$3 ctx)          } 
+    | FIX ATerm                         { fun ctx   ->  TmFix($1, $2 ctx )                      }
     | SUCC ATerm                        { fun ctx   ->  TmSucc($1, $2 ctx )                     }
     | PRED ATerm                        { fun ctx   ->  TmPred($1, $2 ctx )                     }
     | ISZERO ATerm                      { fun ctx   ->  TmIsZero($1, $2 ctx)                    }
@@ -193,7 +211,7 @@ AscribeTerm :
     | ATerm AS Type                     { fun ctx   ->  TmAscribe($2,$1 ctx,$3 ctx)             }
     | ATerm                             { $1                                                    }
 ATerm       :                               /* Atomic terms never require extra parentheses */
-    | LPAREN Term RPAREN                { $2                                                    }
+    | LPAREN TermSeq RPAREN             { $2                                                    }
     | LCURLY Fields RCURLY              { fun ctx   ->  TmRecord($1,$2 ctx 1)                   }
     | LT LCID EQ Term GT AS Type        { fun ctx   ->  TmTag($1,$2.v,$4 ctx,$7 ctx)            } 
     | LCID                              { fun ctx   ->  TmVar($1.i,name2index $1.i ctx $1.v,ctxlen ctx) } 
@@ -205,6 +223,11 @@ ATerm       :                               /* Atomic terms never require extra 
     | INTV                              { fun ctx   ->  let rec f = function
                                                             | 0 -> TmZero($1.i)
                                                             | n -> TmSucc($1.i,f(n-1))in f $1.v }
+    | NIL LType                         { fun ctx   ->  TmNil($1,$2 ctx)                        } 
+TermSeq     : 
+    | Term                              { $1                                                    } 
+    | Term SEMI TermSeq                 { fun ctx   ->  TmApp($2,TmAbs($2,"_",TyUnit,$3(addname ctx"_")),$1 ctx) } 
+
 Fields      : 
     | /* empty */                       { fun ctx   ->  fun i -> []                             }
     | NEFields                          { $1                                                    }

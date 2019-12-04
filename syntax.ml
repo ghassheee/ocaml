@@ -11,6 +11,7 @@ type ty     =
     | TyVariant of (string * ty) list 
     | TyRecord  of (string * ty) list 
     | TyArr     of ty * ty
+    | TyList    of ty 
     | TyFloat 
     | TyString  
     | TyUnit
@@ -19,6 +20,14 @@ type ty     =
 ;;
 
 type term =
+    (* List *)
+    | TmNil         of info * ty
+    | TmCons        of info * ty * term * term 
+    | TmIsNil       of info * ty * term 
+    | TmHead        of info * ty * term 
+    | TmTail        of info * ty * term 
+    (* Fix *)
+    | TmFix         of info * term 
     (* Float / String  *) 
     | TmString      of info * string 
     | TmFloat       of info * float
@@ -111,6 +120,7 @@ let rec tmWalk onVar onType c   = let (f,g) = (onVar,onType) in function
     | TmAscribe(fi,t,tyT)       -> TmAscribe(fi,tmWalk f g c t,g c tyT) 
     | TmRecord(fi,tl)           -> TmRecord(fi,List.map(fun(l,t)->(l,tmWalk f g c t))tl)  
     | TmProj(fi,t,i)            -> TmProj(fi,tmWalk f g c t,i) 
+    | TmFix(fi,t)               -> TmFix(fi,tmWalk f g c t)
     | x                         -> x
 
 let tyShiftOnVar d          = fun c x n     ->  if x>=c then TyVar(x+d,n+d)     else TyVar(x,n+d) 
@@ -164,6 +174,7 @@ let tmInfo  = function
     | TmString(fi,_)        -> fi 
     | TmFloat(fi,_)         -> fi
     | TmTimesfloat(fi,_,_)  -> fi 
+    | TmFix(fi,_)           -> fi
 
 (* -------------------------------------------------- *) 
 (* Bind *) 
@@ -273,9 +284,14 @@ let rec pr_Term outer ctx  = function
 and pr_AppTerm outer ctx   = function 
     | TmApp(fi, t1, t2)         ->  obox0();  pr_AppTerm false ctx t1;ps();pr_ATerm false ctx t2;  cbox();
     | TmPred(_,t)               ->  pr"pred "  ;pr_ATerm false ctx t
+    | TmSucc(_,t)               ->  let rec f n = function 
+        | TmZero(_)                 -> pi n 
+        | TmSucc(_,s)               -> f (n+1) s
+        | _                         -> pr"(succ ";pr_ATerm false ctx t;pr")" in f 1 t
     | TmIsZero(_,t)             ->  pr"iszero ";pr_ATerm false ctx t
     | TmAscribe(fi,t,tyT)       ->  pr_AppTerm outer ctx t
     | TmTimesfloat(fi,t1,t2)    ->  pr_AppTerm outer ctx t1;pr" *. ";pr_AppTerm outer ctx t2
+    | TmFix(fi,t)               ->  pr"fix "   ;pr_ATerm false ctx t
     | t                         ->  pr_PathTerm outer ctx t 
 
 and pr_PathTerm outer ctx   = function
@@ -295,10 +311,6 @@ and pr_ATerm outer ctx     = function
     | TmTrue(_)                 ->  pr "true"
     | TmFalse(_)                ->  pr "false"
     | TmZero(fi)                ->  pr "0"
-    | TmSucc(_,t)               ->  let rec f n = function 
-        | TmZero(_)                 -> pi n 
-        | TmSucc(_,s)               -> f (n+1) s
-        | _                         -> pr"(succ ";pr_ATerm false ctx t;pr")" in f 1 t
     | TmRecord(fi,flds)         ->  pr"{"; oobox0(); pr_flds pr_Term outer ctx 1 flds; pr "}"; cbox()
     | t                         ->  pr "("; pr_Term outer ctx t; pr ")"
 

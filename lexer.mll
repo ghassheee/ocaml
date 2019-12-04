@@ -3,6 +3,14 @@ open Support.Error
 
 let reservedWords = [
   (* Keywords *)
+    ("List",    fun i -> Parser.LIST i);
+    ("tail",    fun i -> Parser.TAIL i);
+    ("head",    fun i -> Parser.HEAD i);
+    ("isnil",   fun i -> Parser.ISNIL i);
+    ("cons",    fun i -> Parser.CONS i);
+    ("nil",     fun i -> Parser.NIL i);
+    ("letrec",  fun i -> Parser.LETREC i);
+    ("fix",     fun i -> Parser.FIX i);
     ("Float",   fun i -> Parser.FLOAT i);
     ("*.",      fun i -> Parser.TIMESFLOAT i);
     ("String",  fun i -> Parser.STRING i);
@@ -132,6 +140,7 @@ rule token              = parse
 | "#show"                   { show lexbuf                                           }   
 | tabs+                     { token lexbuf                                          }
 | "()"                      { Parser.UNIT(info lexbuf)                              }
+| "[]"                      { Parser.NIL(info lexbuf)                               } 
 | nl                        { newline lexbuf; token lexbuf                          }
 | digit+                    { Parser.INTV{i=info lexbuf;v=ios(text lexbuf)}         }
 | "*."                      { Parser.TIMESFLOAT(info lexbuf)                        }  

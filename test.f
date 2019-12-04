@@ -21,3 +21,15 @@ s = (\x:X.succ x);
 double = \f:Y.\x:X.f(f x);
 double s 1;
 
+
+ff = \ie:Nat->Bool.
+        \x:Nat.
+        if iszero x then true
+        else if iszero (pred x) then false 
+        else ie (pred (pred x));
+
+iseven = fix ff;
+
+
+
+iseven 7;
