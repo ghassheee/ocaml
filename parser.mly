@@ -7,17 +7,21 @@ open Support.Pervasive
 open Syntax
 open Type
 open Eval
+open Interpreter 
 
 let pe = print_endline 
 %}
 
 
 /* REPL Methods */ 
-
+%token <string  Support.Error.withinfo> LOAD
 %token <Support.Error.info> SHOWCONTEXT
 
 
 /* Keyword tokens */
+%token <Support.Error.info> REF 
+%token <Support.Error.info> REFTYPE
+
 %token <Support.Error.info> LIST
 %token <Support.Error.info> TAIL
 %token <Support.Error.info> HEAD
@@ -109,30 +113,38 @@ let pe = print_endline
 /* The returned type of a toplevel is Syntax.command list. */
 %start toplevel
 %start input 
-%type <Syntax.context -> (Syntax.command list * Syntax.context)> input 
+%type <Syntax.context -> Eval.store -> (Syntax.command list * Syntax.context * Eval.store)> input 
 %type <Syntax.context -> (Syntax.command list * Syntax.context)> toplevel
 
 %%
 /************   REPL   ***************************************************************************/
+
 input :   /* Left Recursion */
-    |                                   { fun ctx   ->  [],[]                                   }
-    | input SHOWCONTEXT DOUBLESEMI      { let _,ctx' = $1 [] in pr_ctx ctx';
-                                          fun ctx   ->  [],ctx'                                 }  
-    | input DOUBLESEMI                  { fun ctx   ->  [],ctx                                  } 
-    | input oneREPL                     { let _,ev_ctx  = $1 [] in  
-                                          let cmds,_    = $2 ev_ctx in 
-                                          let ev_ctx'   = process_commands ev_ctx cmds in 
-                                          fun ctx   ->  [],ev_ctx'                              } 
+    |                                   { fun _ _   ->  [],emptyctx,emptystore                  }
+    | input LOAD                        { let file   = $2.v in 
+                                          fun ctx s ->  [],ctx,s                                }  
+    | input SHOWCONTEXT DOUBLESEMI      { let _,ctx',s' = $1 [] emptystore in pr_ctx ctx';
+                                          fun _ _  ->  [],ctx',s'                               }  
+    | input DOUBLESEMI                  { fun ctx s ->  [],ctx,s                                } 
+    | input oneREPL                     { let _,ev_ctx,s    = $1 [] emptystore in   
+                                          let cmds,_      = $2 ev_ctx in 
+                                          let ev_ctx',s'   = process_commands ev_ctx s cmds in 
+                                          fun _ _  -> [],ev_ctx',s'  } 
 oneREPL : 
-    | Command DOUBLESEMI                { fun ctx   ->  let cmd,ctx'    = $1 ctx in [cmd],ctx'  } 
-    | Command SEMI oneREPL              { fun ctx   ->  let cmd,ctx'    = $1 ctx in 
-                                                        let cmds,ctx''  = $3 ctx' in cmd::cmds,ctx''  }
+    | Command DOUBLESEMI                { fun ctx ->  let cmd,ctx'    = $1 ctx in [cmd],ctx'  } 
+    | Command SEMI oneREPL              { fun ctx ->  let cmd,ctx'    = $1 ctx in 
+                                                      let cmds,ctx''  = $3 ctx' in cmd::cmds,ctx''  }
+
+
 /************  COMPILER  *************************************************************************/
+
 toplevel : /* Right Recursion */                
     | EOF                               { fun ctx   ->  [],ctx                                  } 
     | Command SEMI toplevel             { fun ctx   ->  let cmd,ctx  = $1 ctx in 
                                                         let cmds,ctx = $3 ctx in cmd::cmds,ctx  } 
+
 /************   COMMAND  *************************************************************************/
+
 Command     :   
     | TermWrap                          { fun ctx   ->  let t = $1 ctx in Eval(tmInfo t,t),ctx  }
     | UCID TyBinder                     { fun ctx   ->  Bind($1.i,$1.v,$2 ctx),addname ctx $1.v } 
@@ -143,9 +155,12 @@ TyBinder    :
 Binder      : 
     | COLON Type                        { fun ctx   ->  BindTmVar($2 ctx)                         } 
     | EQ Term                           { fun ctx   ->  BindTmAbb($2 ctx,None)                  } 
+
 /************    TYPE    *************************************************************************/
+
 Type        : 
     | ArrowType                         { $1                                                    } 
+    | REFTYPE AType                     { fun ctx   ->  TyRef($2 ctx)                           } 
 ArrowType   :
     | AType ARROW ArrowType             { fun ctx   ->  TyArr($1 ctx, $3 ctx)                   }
     | AType                             { $1                                                    } 
@@ -185,9 +200,9 @@ Case        :
     | LT LCID EQ LCID GT DARROW AppTerm { fun ctx   ->  ($2.v,($4.v,$7(addname ctx $4.v)))      } 
 Term        :
     | AppTerm                           { $1                                                    }
+    | AppTerm COLONEQ AppTerm           { fun ctx   ->  TmAssign($2,$1 ctx,$3 ctx)              } 
     | CASE Term OF Cases                { fun ctx   ->  TmCase($1,$2 ctx,$4 ctx)                }
     | Term COLON Term                   { fun ctx   ->  TmLet($2, "_", $3 ctx, $1 ctx)          } 
-    | Term DOT LCID                     { fun ctx   ->  TmProj($2, $1 ctx, $3.v)                }
     | LET LCID EQ Term IN Term          { fun ctx   ->  TmLet($1,$2.v,$4 ctx,$6(addname ctx $2.v))}
     | LET USCORE EQ Term IN Term        { fun ctx   ->  TmLet($1,"_",$4 ctx,$6(addname ctx"_")) }
     | LAMBDA LCID COLON Type DOT Term   { fun ctx   ->  TmAbs($1,$2.v,$4 ctx,$6(addname ctx $2.v))}
@@ -200,13 +215,19 @@ Term        :
     | TAIL LType ATerm                  { fun ctx   ->  TmTail($1,$2 ctx,$3 ctx)                } 
     | ISNIL LType ATerm                 { fun ctx   ->  TmIsNil($1,$2 ctx,$3 ctx)               } 
 AppTerm     :
-    | AscribeTerm                       { $1                                                    }
-    | ATerm TIMESFLOAT ATerm            { fun ctx   ->  TmTimesfloat($2,$1 ctx,$3 ctx)          } 
-    | FIX ATerm                         { fun ctx   ->  TmFix($1, $2 ctx )                      }
-    | SUCC ATerm                        { fun ctx   ->  TmSucc($1, $2 ctx )                     }
-    | PRED ATerm                        { fun ctx   ->  TmPred($1, $2 ctx )                     }
-    | ISZERO ATerm                      { fun ctx   ->  TmIsZero($1, $2 ctx)                    }
-    | AppTerm AscribeTerm               { fun ctx   ->  let t=$1 ctx in TmApp(tmInfo t,t,$2 ctx)}
+    | PathTerm                          { $1                                                    }
+    | PathTerm TIMESFLOAT PathTerm      { fun ctx   ->  TmTimesfloat($2,$1 ctx,$3 ctx)          } 
+    | FIX     PathTerm                  { fun ctx   ->  TmFix($1, $2 ctx )                      }
+    | REF     PathTerm                  { fun ctx   ->  TmRef($1, $2 ctx )                      } 
+    | BANG    PathTerm                  { fun ctx   ->  TmDeref($1, $2 ctx )                    } 
+    | SUCC    PathTerm                  { fun ctx   ->  TmSucc($1, $2 ctx )                     }
+    | PRED    PathTerm                  { fun ctx   ->  TmPred($1, $2 ctx )                     }
+    | ISZERO  PathTerm                  { fun ctx   ->  TmIsZero($1, $2 ctx)                    }
+    | AppTerm PathTerm                  { fun ctx   ->  let t=$1 ctx in TmApp(tmInfo t,t,$2 ctx)}
+PathTerm    : 
+    | PathTerm DOT LCID                 { fun ctx   ->  TmProj($2, $1 ctx, $3.v)                }
+    | PathTerm DOT INTV                 { fun ctx   ->  TmProj($2, $1 ctx, soi $3.v)            }
+    | AscribeTerm                       { $1                                                    } 
 AscribeTerm : 
     | ATerm AS Type                     { fun ctx   ->  TmAscribe($2,$1 ctx,$3 ctx)             }
     | ATerm                             { $1                                                    }

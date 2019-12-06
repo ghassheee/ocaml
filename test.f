@@ -33,3 +33,11 @@ iseven = fix ff;
 
 
 iseven 7;
+
+
+a = ref 0;
+incr = ( \a:(Ref Nat). a := succ( !a ) );
+
+!a ;
+incr a ;
+!a ; 

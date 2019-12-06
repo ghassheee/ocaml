@@ -8,6 +8,7 @@ let soi = string_of_int
 
 type ty     =
     | TyVar     of int * int 
+    | TyRef     of ty 
     | TyVariant of (string * ty) list 
     | TyRecord  of (string * ty) list 
     | TyArr     of ty * ty
@@ -20,6 +21,11 @@ type ty     =
 ;;
 
 type term =
+    (* Ref *)
+    | TmRef         of info * term 
+    | TmDeref       of info * term 
+    | TmLoc         of info * int 
+    | TmAssign      of info * term * term 
     (* List *)
     | TmNil         of info * ty
     | TmCons        of info * ty * term * term 
@@ -102,6 +108,7 @@ let rec name2index fi ctx xn    =   match ctx with
 
 let rec tyWalk onVar c          = let f = onVar in function 
     | TyVar(x,n)                -> onVar c x n
+    | TyRef(tyT)                -> TyRef(tyWalk f c tyT) 
     | TyVariant(fieldtys)       -> TyVariant(List.map (fun(l,tyT)->(l,tyWalk f c tyT)) fieldtys) 
     | TyRecord(fieldtys)        -> TyRecord(List.map (fun(l,tyT)->(l,tyWalk f c tyT)) fieldtys) 
     | TyArr(tyT1,tyT2)          -> TyArr(tyWalk f c tyT1,tyWalk f c tyT2) 
@@ -109,6 +116,9 @@ let rec tyWalk onVar c          = let f = onVar in function
 
 let rec tmWalk onVar onType c   = let (f,g) = (onVar,onType) in function 
     | TmVar(fi,x,n)             -> onVar fi c x n
+    | TmRef(fi,t)               -> TmRef(fi,tmWalk f g c t)
+    | TmDeref(fi,t)             -> TmDeref(fi,tmWalk f g c t) 
+    | TmAssign(fi,t1,t2)        -> TmAssign(fi,tmWalk f g c t1,tmWalk f g c t2)
     | TmCase(fi,t,cases)        -> TmCase(fi,tmWalk f g c t,List.map(fun(li,(xi,ti))->li,(xi,tmWalk f g(c+1)ti))cases)
     | TmLet(fi,x,t1,t2)         -> TmLet(fi,x,tmWalk f g c t1, tmWalk f g(c+1)t2) 
     | TmAbs(fi,x,tyT,t2)        -> TmAbs(fi,x,g c tyT,tmWalk f g(c+1)t2)
@@ -154,6 +164,10 @@ let tmSubstTop     s t      = pe"SUBSTITUTE    : [x↦s]t"; tmShift (-1) (tmSubs
 (* -------------------------------------------------- *) 
 (* Extracting file info *)
 let tmInfo  = function 
+    | TmRef(fi,_)           -> fi 
+    | TmDeref(fi,_)         -> fi 
+    | TmAssign(fi,_,_)      -> fi 
+    | TmLoc(fi,_)           -> fi 
     | TmUnit(fi)            -> fi 
     | TmVar(fi,_,_)         -> fi
     | TmAbs(fi,_,_,_)       -> fi
@@ -203,6 +217,7 @@ let rec isval ctx   = function
     | TmTag(_,_,t,_)                -> isval ctx t
     | TmString(_,_)                 -> true
     | TmFloat(_,_)                  -> true
+    | TmLoc(_,_)                    -> true 
     | t when isnum ctx t            -> true
     | _                             -> false
 
@@ -234,6 +249,7 @@ let rec pr_flds prTm outer ctx i =
 (* -------------------------------------------------- *) 
 (* Type Print *) 
 let rec pr_Type outer ctx   = function
+    | TyRef(tyT)                ->  pr"Ref ";pr_AType false ctx tyT
     | tyT                       ->  pr_ArrowType outer ctx tyT
 
 and pr_ArrowType outer ctx  = function
@@ -269,29 +285,32 @@ let rec pr_cases prTm outer ctx =
 (* -------------------------------------------------- *) 
 (* Term Print *)
 let rec pr_Term outer ctx  = function 
+    | TmAssign(_,t1,t2)         ->  obox();pr_AppTerm false ctx t1;pr" := ";pr_ATerm false ctx t2;cbox()
     | TmCase(_,t,cases)         ->  obox();
         pr"case ";pr_Term false ctx t;pr" of";ps();pr_cases pr_Term outer ctx cases;  cbox()
-    | TmLet(fi,x,t1,t2)         ->  obox0();
+    | TmLet(_,x,t1,t2)          ->  obox0();
         pr"let ";pr x;pr" = ";pr_Term false ctx t1;ps();pr"in";ps();pr_Term false(addname ctx x)t2;   cbox()
-    | TmAbs(fi,x,tyT1,t2)       ->  let (ctx',x')=pickfreshname ctx x in obox();
+    | TmAbs(_,x,tyT1,t2)        ->  let (ctx',x')=pickfreshname ctx x in obox();
         pr"λ";pr x';pr":";pr_Type false ctx tyT1;pr".";psbr((not(small t2))||outer);pr_Term outer ctx' t2;  cbox()
-    | TmIf(fi, t1, t2, t3)      ->  obox0();
+    | TmIf(_, t1, t2, t3)       ->  obox0();
         pr"if "  ;pr_Term false ctx t1;ps();
         pr"then ";pr_Term false ctx t2;ps();
         pr"else ";pr_Term false ctx t3;      cbox()
     | t                         -> pr_AppTerm outer ctx t
 
 and pr_AppTerm outer ctx   = function 
-    | TmApp(fi, t1, t2)         ->  obox0();  pr_AppTerm false ctx t1;ps();pr_ATerm false ctx t2;  cbox();
+    | TmApp(_, t1, t2)          ->  obox0();  pr_AppTerm false ctx t1;ps();pr_ATerm false ctx t2;  cbox();
     | TmPred(_,t)               ->  pr"pred "  ;pr_ATerm false ctx t
     | TmSucc(_,t)               ->  let rec f n = function 
         | TmZero(_)                 -> pi n 
         | TmSucc(_,s)               -> f (n+1) s
         | _                         -> pr"(succ ";pr_ATerm false ctx t;pr")" in f 1 t
     | TmIsZero(_,t)             ->  pr"iszero ";pr_ATerm false ctx t
-    | TmAscribe(fi,t,tyT)       ->  pr_AppTerm outer ctx t
-    | TmTimesfloat(fi,t1,t2)    ->  pr_AppTerm outer ctx t1;pr" *. ";pr_AppTerm outer ctx t2
-    | TmFix(fi,t)               ->  pr"fix "   ;pr_ATerm false ctx t
+    | TmAscribe(_,t,tyT)        ->  pr_AppTerm outer ctx t
+    | TmTimesfloat(_,t1,t2)     ->  pr_AppTerm outer ctx t1;pr" *. ";pr_AppTerm outer ctx t2
+    | TmFix(_,t)                ->  pr"fix "   ;pr_ATerm false ctx t
+    | TmRef(_,t)                ->  pr"ref "   ;pr_ATerm false ctx t
+    | TmDeref(_,t)              ->  pr"!"      ;pr_ATerm false ctx t  
     | t                         ->  pr_PathTerm outer ctx t 
 
 and pr_PathTerm outer ctx   = function
@@ -311,6 +330,7 @@ and pr_ATerm outer ctx     = function
     | TmTrue(_)                 ->  pr "true"
     | TmFalse(_)                ->  pr "false"
     | TmZero(fi)                ->  pr "0"
+    | TmLoc(fi,l)               ->  pr "<loc #"; pi l; pr">"
     | TmRecord(fi,flds)         ->  pr"{"; oobox0(); pr_flds pr_Term outer ctx 1 flds; pr "}"; cbox()
     | t                         ->  pr "("; pr_Term outer ctx t; pr ")"
 

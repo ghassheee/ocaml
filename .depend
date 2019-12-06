@@ -1,26 +1,29 @@
-core.cmi : syntax.cmo support.cmi
-eval.cmo : type.cmi syntax.cmo support.cmi core.cmi eval.cmi
-eval.cmx : type.cmx syntax.cmx support.cmx core.cmi eval.cmi
-eval.cmi : syntax.cmo support.cmi core.cmi
-imain.cmo : type.cmi syntax.cmo support.cmi parser.cmi lexer.cmo eval.cmi \
-    core.cmi
-imain.cmx : type.cmx syntax.cmx support.cmx parser.cmx lexer.cmx eval.cmx \
-    core.cmi
+eval.cmo : type.cmi syntax.cmo support.cmi eval.cmi
+eval.cmx : type.cmx syntax.cmx support.cmx eval.cmi
+eval.cmi : syntax.cmo support.cmi
+imain.cmo : type.cmi syntax.cmo support.cmi interpreter.cmo eval.cmi
+imain.cmx : type.cmx syntax.cmx support.cmx interpreter.cmx eval.cmx
+interpreter.cmo : type.cmi syntax.cmo support.cmi parser.cmi lexer.cmo \
+    eval.cmi
+interpreter.cmx : type.cmx syntax.cmx support.cmx parser.cmx lexer.cmx \
+    eval.cmx
 lexer.cmo : support.cmi parser.cmi
 lexer.cmx : support.cmx parser.cmx
-main.cmo : type.cmi syntax.cmo support.cmi parser.cmi lexer.cmo eval.cmi \
-    core.cmi
-main.cmx : type.cmx syntax.cmx support.cmx parser.cmx lexer.cmx eval.cmx \
-    core.cmi
-parser.cmo : type.cmi syntax.cmo support.cmi eval.cmi core.cmi parser.cmi
-parser.cmx : type.cmx syntax.cmx support.cmx eval.cmx core.cmi parser.cmi
+main.cmo : type.cmi syntax.cmo support.cmi interpreter.cmo eval.cmi
+main.cmx : type.cmx syntax.cmx support.cmx interpreter.cmx eval.cmx
+match.cmo : syntax.cmo support.cmi
+match.cmx : syntax.cmx support.cmx
+parser.cmo : type.cmi syntax.cmo support.cmi eval.cmi interpreter.cmo parser.cmi
+parser.cmx : type.cmx syntax.cmx support.cmx eval.cmx interpreter.cmx parser.cmi
 parser.cmi : syntax.cmo support.cmi
+print.cmo : syntax.cmo support.cmi
+print.cmx : syntax.cmx support.cmx
 support.cmo : support.cmi
 support.cmx : support.cmi
 support.cmi :
 syntax.cmo : support.cmi
 syntax.cmx : support.cmx
 syntax_.cmi : support.cmi
-type.cmo : syntax.cmo support.cmi core.cmi type.cmi
-type.cmx : syntax.cmx support.cmx core.cmi type.cmi
-type.cmi : syntax.cmo support.cmi core.cmi
+type.cmo : syntax.cmo support.cmi type.cmi
+type.cmx : syntax.cmx support.cmx type.cmi
+type.cmi : syntax.cmo support.cmi

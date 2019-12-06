@@ -3,12 +3,16 @@ open Support.Error
 
 let reservedWords = [
   (* Keywords *)
+    ("ref",     fun i -> Parser.REF i);
+    ("Ref",     fun i -> Parser.REFTYPE i);
+    (*
     ("List",    fun i -> Parser.LIST i);
     ("tail",    fun i -> Parser.TAIL i);
     ("head",    fun i -> Parser.HEAD i);
     ("isnil",   fun i -> Parser.ISNIL i);
     ("cons",    fun i -> Parser.CONS i);
     ("nil",     fun i -> Parser.NIL i);
+    *)
     ("letrec",  fun i -> Parser.LETREC i);
     ("fix",     fun i -> Parser.FIX i);
     ("Float",   fun i -> Parser.FLOAT i);
@@ -138,6 +142,7 @@ let comment_end             = "*/"
 
 rule token              = parse
 | "#show"                   { show lexbuf                                           }   
+| "#load"                   { load lexbuf                                           }   
 | tabs+                     { token lexbuf                                          }
 | "()"                      { Parser.UNIT(info lexbuf)                              }
 | "[]"                      { Parser.NIL(info lexbuf)                               } 
@@ -159,7 +164,14 @@ rule token              = parse
 
 and show                = parse
 | "context"                 { Parser.SHOWCONTEXT(info lexbuf)                       }
-| _                       { show lexbuf   }
+| _                         { show lexbuf   }
+and load                = parse
+| '"'                       { Parser.LOAD{i = !startLex; v=getStr()}                  }
+| eof                       { error(!startLex)"String not terminated"               } 
+| '\\'                      { addStr(escaped lexbuf)              ; load lexbuf     } 
+| '\n'                      { addStr('\n') ; newline lexbuf       ; load lexbuf     } 
+| _                         { addStr(Lexing.lexeme_char lexbuf 0) ; load lexbuf     } 
+| "\""                      { resetStr();startLex:=info lexbuf    ; load lexbuf     } 
 
 and comment             = parse
 | comment                   { depth:=succ !depth; comment lexbuf                    } 

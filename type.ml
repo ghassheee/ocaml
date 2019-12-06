@@ -43,6 +43,13 @@ let rec tyeqv ctx tyS tyT   =
 (* ----------- TYPING --------------- *) 
 
 let rec typeof ctx   t      = let p str = pr str;pr"(∣Γ∣=";pi(ctxlen ctx);pr") ";pr_tm ctx t;pn() in match t with
+    | TmRef(fi,t)               ->  p "T-REF         : "; TyRef(typeof ctx t)
+    | TmDeref(fi,t)             ->  p "T-DEREF       : "; (match simplifyty ctx (typeof ctx t) with 
+            | TyRef(tyT)            -> tyT
+            | _                     -> error fi "argument of ! does not have a Ref Type" )
+    | TmAssign(fi,t1,t2)        ->  p "T-ASSIGN      : "; (match simplifyty ctx (typeof ctx t1) with
+            | TyRef(tyT)            -> if tyeqv ctx(typeof ctx t2)tyT then TyUnit else error fi":= cannot assign type"
+            | _                     -> error fi "arguments of := does not have matching type" ) 
     | TmFix(fi,t1)              ->  p "T-FIX         : "; (match typeof ctx t1 with 
             | TyArr(tyS,tyT)        -> if tyeqv ctx tyS tyT then tyT else error fi"fix can take 'x' whose type: A -> A" 
             | _                     -> error fi"fix can only take x whose type is A -> A"  )
@@ -110,6 +117,6 @@ let prbindty ctx = function
     | BindTmVar(tyT)            -> pr": "; pr_ty ctx tyT 
     | BindTyVar                 -> () 
     | BindTyAbb(tyT)            -> pr"= "; pr_ty ctx tyT
-    | BindTmAbb(t,Some(tyT))    -> pr"= "; pr_tm ctx t; pr" : ";pr_ty ctx tyT
-    | BindTmAbb(t,None)         -> pr"= "; pr_tm ctx t; pr" : ";pr_ty ctx(typeof ctx t) 
+    | BindTmAbb(t,Some(tyT))    -> pr"= "; pr_tm ctx t
+    | BindTmAbb(t,None)         -> pr"= "; pr_tm ctx t 
 
