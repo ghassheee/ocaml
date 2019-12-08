@@ -13,9 +13,11 @@ main.cmo : type.cmi syntax.cmo support.cmi interpreter.cmo eval.cmi
 main.cmx : type.cmx syntax.cmx support.cmx interpreter.cmx eval.cmx
 match.cmo : syntax.cmo support.cmi
 match.cmx : syntax.cmx support.cmx
-parser.cmo : type.cmi syntax.cmo support.cmi eval.cmi interpreter.cmo parser.cmi
-parser.cmx : type.cmx syntax.cmx support.cmx eval.cmx interpreter.cmx parser.cmi
-parser.cmi : syntax.cmo support.cmi
+parser.cmo : type.cmi syntax.cmo support.cmi interpreter.cmo eval.cmi \
+    parser.cmi
+parser.cmx : type.cmx syntax.cmx support.cmx interpreter.cmx eval.cmx \
+    parser.cmi
+parser.cmi : syntax.cmo support.cmi eval.cmi
 print.cmo : syntax.cmo support.cmi
 print.cmx : syntax.cmx support.cmx
 support.cmo : support.cmi

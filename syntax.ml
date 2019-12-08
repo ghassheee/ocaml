@@ -8,6 +8,7 @@ let soi = string_of_int
 
 type ty     =
     | TyVar     of int * int 
+    | TyTop
     | TyRef     of ty 
     | TyVariant of (string * ty) list 
     | TyRecord  of (string * ty) list 
@@ -321,7 +322,7 @@ and pr_ATerm outer ctx     = function
     | TmVar(fi,x,n)             -> let l = ctxlen ctx in 
         if l = n 
             then pr (index2name fi ctx x)
-            else (pr"[Context Error: ";pi l;pr"!=";pi n;pr" in { Γ:";pr(List.fold_left(fun s(x,_)->s^" "^x)""ctx);pr" }]")  
+            else (pr"[NameContext Error: ";pi l;pr"!=";pi n;pr" in { Γ:";pr(List.fold_left(fun s(x,_)->s^" "^x)""ctx);pr" }]")  
     | TmTag(fi,l,t,tyT)         ->  obox(); 
         pr"<";pr l;pr"=";pr_Term false ctx t;pr">";ps();pr" : ";pr_Type outer ctx tyT;  cbox()
     | TmString(_,s)             ->  pr "\"";pr s; pr"\""

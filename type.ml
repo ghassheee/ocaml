@@ -40,6 +40,19 @@ let rec tyeqv ctx tyS tyT   =
                                                 with Not_found -> false) flds2 
     | (tyS,tyT)                         -> tyS = tyT 
 
+(* --------- SUBTYPING -------------- *)
+
+let rec subtype ctx tyS tyT = tyeqv ctx tyS tyT || 
+    let tyS = simplifyty ctx tyS in
+    let tyT = simplifyty ctx tyT in match (tyS,tyT) with 
+    | _,TyTop                           -> true
+    | TyArr(s1,s2),TyArr(t1,t2)         -> subtype ctx t1 s1 && subtype ctx s2 t2 
+    | TyRecord(fS),TyRecord(fT)         -> List.for_all ( fun(li,tyTi) -> 
+                                                try let tySi = List.assoc li fS in subtype ctx tySi tyTi
+                                                with Not_found -> false ) fT 
+    | _,_                               -> false 
+
+
 (* ----------- TYPING --------------- *) 
 
 let rec typeof ctx   t      = let p str = pr str;pr"(∣Γ∣=";pi(ctxlen ctx);pr") ";pr_tm ctx t;pn() in match t with
