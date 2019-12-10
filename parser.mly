@@ -18,6 +18,11 @@ let pe = print_endline
 
 
 /* Keyword tokens */
+%token <Support.Error.info> UNIV
+%token <Support.Error.info> PI
+%token <Support.Error.info> SIGMA
+
+
 %token <Support.Error.info> LETREC 
 %token <Support.Error.info> FIX 
 
@@ -129,8 +134,9 @@ Type :
     | UNIV                              { fun ctx   ->  Universe($1,0)                           }
     | BOOL                              { fun ctx   ->  TmBool($1)                               }
     | NAT                               { fun ctx   ->  TmNat($1)                                }
-    | PI Term Term                      { fun ctx   ->  TmApp($1,TmApp($1,TmPi($1),$2 ctx),$3 ctx)}
-    | SIGMA Term Term                   { fun ctx   ->  TmApp($1,TmApp($1,TmSigma($1),$2 ctx),$3 ctx)}
+    | Type ARROW Type                   { fun ctx   ->  TmApp($2,TmApp($2,TmPi($2),$1 ctx),TmAbs($2,"_",$1 ctx,$3 ctx))}
+    | PI Type Term                      { fun ctx   ->  TmApp($1,TmApp($1,TmPi($1),$2 ctx),$3 ctx)}
+    | SIGMA Type Term                   { fun ctx   ->  TmApp($1,TmApp($1,TmSigma($1),$2 ctx),$3 ctx)}
 
 /************    TERM    *************************************************************************/
 TermWrap    :
@@ -139,24 +145,23 @@ TermWrap    :
     | Term                              { $1                                                    } 
 Term        :
     | AppTerm                           { $1                                                    }
-    | Term DOT LCID                     { fun ctx   ->  TmProj($2, $1 ctx, $3.v)                }
     | LET LCID EQ Term IN Term          { fun ctx   ->  TmLet($1,$2.v,$4 ctx,$6(addname ctx $2.v))}
     | LET USCORE EQ Term IN Term        { fun ctx   ->  TmLet($1,"_",$4 ctx,$6(addname ctx"_")) }
     | LAMBDA LCID COLON Type DOT Term   { fun ctx   ->  TmAbs($1,$2.v,$4 ctx,$6(addname ctx $2.v))}
     | IF Term THEN Term ELSE Term       { fun ctx   ->  TmIf($1,$2 ctx,$4 ctx,$6 ctx)           }
-    | LETREC LCID COLON Type EQ Term IN Term
-                                        { fun ctx   ->  let ctx' = addname ctx $2.v in 
-                                                        TmLet($1,$2.v,TmFix($1,TmAbs($1,$2.v,$4 ctx,$6 ctx')),$8 ctx')}
 AppTerm     :
     | ATerm                             { $1                                                    }
-    | FIX ATerm                         { fun ctx   ->  TmFix($1, $2 ctx )                      }
+    | PI Term Term                      { fun ctx   ->  TmApp($1,TmApp($1,TmPi($1),$2 ctx),$3 ctx)}
+    | SIGMA Term Term                   { fun ctx   ->  TmApp($1,TmApp($1,TmSigma($1),$2 ctx),$3 ctx)}
     | SUCC ATerm                        { fun ctx   ->  TmSucc($1, $2 ctx )                     }
     | PRED ATerm                        { fun ctx   ->  TmPred($1, $2 ctx )                     }
     | ISZERO ATerm                      { fun ctx   ->  TmIsZero($1, $2 ctx)                    }
 ATerm       :                               /* Atomic terms never require extra parentheses */
     | LPAREN TermSeq RPAREN             { $2                                                    }
     | LCID                              { fun ctx   ->  TmVar($1.i,name2index $1.i ctx $1.v,ctxlen ctx) } 
-    | UNIT                              { fun ctx   ->  TmUnit($1)                              }
+    | UNIV                              { fun ctx   ->  Universe($1,0)                           }
+    | BOOL                              { fun ctx   ->  TmBool($1)                               }
+    | NAT                               { fun ctx   ->  TmNat($1)                                }
     | TRUE                              { fun ctx   ->  TmTrue($1)                              }
     | FALSE                             { fun ctx   ->  TmFalse($1)                             }
     | INTV                              { fun ctx   ->  let rec f = function
@@ -164,5 +169,4 @@ ATerm       :                               /* Atomic terms never require extra 
                                                             | n -> TmSucc($1.i,f(n-1))in f $1.v }
 TermSeq     : 
     | Term                              { $1                                                    } 
-    | Term SEMI TermSeq                 { fun ctx   ->  TmApp($2,TmAbs($2,"_",TyUnit,$3(addname ctx"_")),$1 ctx) } 
 

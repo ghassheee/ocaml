@@ -3,25 +3,10 @@ open Support.Error
 
 let reservedWords = [
   (* Keywords *)
-    ("Σ",       fun i -> Parser.SIGMA i);
-    ("Π",       fun i -> Parser.PI i); 
+    ("Sigma",       fun i -> Parser.SIGMA i);
+    ("Pi",       fun i -> Parser.PI i); 
     ("Univ",    fun i -> Parser.UNIV i);
-    ("List",    fun i -> Parser.LIST i);
-    ("tail",    fun i -> Parser.TAIL i);
-    ("head",    fun i -> Parser.HEAD i);
-    ("isnil",   fun i -> Parser.ISNIL i);
-    ("cons",    fun i -> Parser.CONS i);
-    ("nil",     fun i -> Parser.NIL i);
     ("letrec",  fun i -> Parser.LETREC i);
-    ("fix",     fun i -> Parser.FIX i);
-    ("Float",   fun i -> Parser.FLOAT i);
-    ("*.",      fun i -> Parser.TIMESFLOAT i);
-    ("String",  fun i -> Parser.STRING i);
-    ("case",    fun i -> Parser.CASE i);
-    ("of",      fun i -> Parser.OF i);
-    ("as",      fun i -> Parser.AS i);
-    ("unit",    fun i -> Parser.UNIT i);
-    ("Unit",    fun i -> Parser.UNITTYPE i);
     ("where",   fun i -> Parser.WHERE i);
     ("in",      fun i -> Parser.IN i);
     ("let",     fun i -> Parser.LET i);
@@ -142,11 +127,8 @@ let comment_end             = "*/"
 rule token              = parse
 | "#show"                   { show lexbuf                                           }   
 | tabs+                     { token lexbuf                                          }
-| "()"                      { Parser.UNIT(info lexbuf)                              }
-| "[]"                      { Parser.NIL(info lexbuf)                               } 
 | nl                        { newline lexbuf; token lexbuf                          }
 | digit+                    { Parser.INTV{i=info lexbuf;v=ios(text lexbuf)}         }
-| "*."                      { Parser.TIMESFLOAT(info lexbuf)                        }  
 | digit+ '.' digit+         { Parser.FLOATV{i=info lexbuf;v=fos(text lexbuf)}       }
 | init tail*                { createID (info lexbuf) (text lexbuf)                  }
 | ":=" | "<:" | "<-" | "->" | "=>" | "==>" | "{|" | "|}" | "<|" | "|>" 
