@@ -15,38 +15,20 @@ type ty     =
     | TyFloat 
     | TyString  
     | TyUnit
-    | TyBool
-    | TyNat 
 ;;
 
+
 type term =
-    (* List *)
-    | TmNil         of info * ty
-    | TmCons        of info * ty * term * term 
-    | TmIsNil       of info * ty * term 
-    | TmHead        of info * ty * term 
-    | TmTail        of info * ty * term 
-    (* Fix *)
-    | TmFix         of info * term 
-    (* Float / String  *) 
-    | TmString      of info * string 
-    | TmFloat       of info * float
-    | TmTimesfloat  of info * term * term 
-    (* Variant *)
-    | TmTag         of info * string * term * ty 
-    | TmCase        of info * term * (string * (string * term)) list  (* <- (label*(variable*term) list *) 
-    (* Record *)
-    | TmProj        of info * term * string  
-    | TmRecord      of info * (string * term) list 
-    (* Ascription *) 
-    | TmAscribe     of info * term * ty
-    (* Unit *)
-    | TmUnit        of info 
+    | Universe      of info * int 
+    | TmSigma       of info 
+    | TmBool        of info 
+    | TmNat         of info 
+    | TmPi          of info 
     (* Let  *)
     | TmLet         of info * string * term * term
     (* Lambda *) 
     | TmVar         of info * int * int 
-    | TmAbs         of info * string * ty * term 
+    | TmAbs         of info * string * term * term 
     | TmApp         of info * term * term 
     (* Arith *) 
     | TmZero        of info

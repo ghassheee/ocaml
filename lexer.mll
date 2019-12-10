@@ -3,6 +3,9 @@ open Support.Error
 
 let reservedWords = [
   (* Keywords *)
+    ("Σ",       fun i -> Parser.SIGMA i);
+    ("Π",       fun i -> Parser.PI i); 
+    ("Univ",    fun i -> Parser.UNIV i);
     ("List",    fun i -> Parser.LIST i);
     ("tail",    fun i -> Parser.TAIL i);
     ("head",    fun i -> Parser.HEAD i);
