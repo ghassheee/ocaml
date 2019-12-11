@@ -126,47 +126,49 @@ TyBinder    :
     |                                   { fun ctx   ->  BindTyVar                               }
     | EQ Type                           { fun ctx   ->  BindTyAbb($2 ctx)                       } 
 Binder      : 
-    | COLON Type                        { fun ctx   ->  BindTmVar($2 ctx)                       } 
-    | EQ Term                           { fun ctx   ->  BindTmAbb($2 ctx,None)                  } 
+    | COLON Type                        { fun ctx   ->  BindVar($2 ctx)                       } 
+    | EQ Term                           { fun ctx   ->  BindAbb($2 ctx,None)                  } 
 /************    TYPE    *************************************************************************/
 
 Type :
     | UNIV                              { fun ctx   ->  Universe($1,0)                           }
-    | BOOL                              { fun ctx   ->  TmBool($1)                               }
-    | NAT                               { fun ctx   ->  TmNat($1)                                }
-    | Type ARROW Type                   { fun ctx   ->  TmApp($2,TmApp($2,TmPi($2),$1 ctx),TmAbs($2,"_",$1 ctx,$3 ctx))}
-    | PI Type Term                      { fun ctx   ->  TmApp($1,TmApp($1,TmPi($1),$2 ctx),$3 ctx)}
-    | SIGMA Type Term                   { fun ctx   ->  TmApp($1,TmApp($1,TmSigma($1),$2 ctx),$3 ctx)}
+    | BOOL                              { fun ctx   ->  Bool($1)                               }
+    | NAT                               { fun ctx   ->  Nat($1)                                }
+    | Type ARROW Type                   { fun ctx   ->  App($2,App($2,Pi($2),$1 ctx),Abs($2,"_",$1 ctx,$3 ctx))}
+    | PI Type Term                      { fun ctx   ->  App($1,App($1,Pi($1),$2 ctx),$3 ctx)}
+    | SIGMA Type Term                   { fun ctx   ->  App($1,App($1,Sigma($1),$2 ctx),$3 ctx)}
+    | LPAREN Type RPAREN                { $2 } 
 
 /************    TERM    *************************************************************************/
 TermWrap    :
-    | TermWrap COMMA LCID EQ Term       { fun ctx   ->  TmLet($2,$3.v,$5 ctx,$1(addname ctx $3.v)) }
-    | Term     WHERE LCID EQ Term       { fun ctx   ->  TmLet($2,$3.v,$5 ctx,$1(addname ctx $3.v)) }
+    | TermWrap COMMA LCID EQ Term       { fun ctx   ->  Let($2,$3.v,$5 ctx,$1(addname ctx $3.v)) }
+    | Term     WHERE LCID EQ Term       { fun ctx   ->  Let($2,$3.v,$5 ctx,$1(addname ctx $3.v)) }
     | Term                              { $1                                                    } 
 Term        :
     | AppTerm                           { $1                                                    }
-    | LET LCID EQ Term IN Term          { fun ctx   ->  TmLet($1,$2.v,$4 ctx,$6(addname ctx $2.v))}
-    | LET USCORE EQ Term IN Term        { fun ctx   ->  TmLet($1,"_",$4 ctx,$6(addname ctx"_")) }
-    | LAMBDA LCID COLON Type DOT Term   { fun ctx   ->  TmAbs($1,$2.v,$4 ctx,$6(addname ctx $2.v))}
-    | IF Term THEN Term ELSE Term       { fun ctx   ->  TmIf($1,$2 ctx,$4 ctx,$6 ctx)           }
+    | LET LCID EQ Term IN Term          { fun ctx   ->  Let($1,$2.v,$4 ctx,$6(addname ctx $2.v))}
+    | LET USCORE EQ Term IN Term        { fun ctx   ->  Let($1,"_",$4 ctx,$6(addname ctx"_")) }
+    | LAMBDA LCID COLON Type DOT Term   { fun ctx   ->  Abs($1,$2.v,$4 ctx,$6(addname ctx $2.v))}
+    | IF Term THEN Term ELSE Term       { fun ctx   ->  If($1,$2 ctx,$4 ctx,$6 ctx)           }
 AppTerm     :
     | ATerm                             { $1                                                    }
-    | PI Term Term                      { fun ctx   ->  TmApp($1,TmApp($1,TmPi($1),$2 ctx),$3 ctx)}
-    | SIGMA Term Term                   { fun ctx   ->  TmApp($1,TmApp($1,TmSigma($1),$2 ctx),$3 ctx)}
-    | SUCC ATerm                        { fun ctx   ->  TmSucc($1, $2 ctx )                     }
-    | PRED ATerm                        { fun ctx   ->  TmPred($1, $2 ctx )                     }
-    | ISZERO ATerm                      { fun ctx   ->  TmIsZero($1, $2 ctx)                    }
+    | AppTerm ATerm                     { fun ctx   ->  App(tmInfo($1 ctx),$1 ctx,$2 ctx)     }
+    | PI Type Term                      { fun ctx   ->  App($1,App($1,Pi($1),$2 ctx),$3 ctx)}
+    | SIGMA Type Term                   { fun ctx   ->  App($1,App($1,Sigma($1),$2 ctx),$3 ctx)}
+    | SUCC ATerm                        { fun ctx   ->  Succ($1, $2 ctx )                     }
+    | PRED ATerm                        { fun ctx   ->  Pred($1, $2 ctx )                     }
+    | ISZERO ATerm                      { fun ctx   ->  IsZero($1, $2 ctx)                    }
 ATerm       :                               /* Atomic terms never require extra parentheses */
     | LPAREN TermSeq RPAREN             { $2                                                    }
-    | LCID                              { fun ctx   ->  TmVar($1.i,name2index $1.i ctx $1.v,ctxlen ctx) } 
+    | LCID                              { fun ctx   ->  Var($1.i,name2index $1.i ctx $1.v,ctxlen ctx) } 
     | UNIV                              { fun ctx   ->  Universe($1,0)                           }
-    | BOOL                              { fun ctx   ->  TmBool($1)                               }
-    | NAT                               { fun ctx   ->  TmNat($1)                                }
-    | TRUE                              { fun ctx   ->  TmTrue($1)                              }
-    | FALSE                             { fun ctx   ->  TmFalse($1)                             }
+    | BOOL                              { fun ctx   ->  Bool($1)                               }
+    | NAT                               { fun ctx   ->  Nat($1)                                }
+    | TRUE                              { fun ctx   ->  True($1)                              }
+    | FALSE                             { fun ctx   ->  False($1)                             }
     | INTV                              { fun ctx   ->  let rec f = function
-                                                            | 0 -> TmZero($1.i)
-                                                            | n -> TmSucc($1.i,f(n-1))in f $1.v }
+                                                            | 0 -> Zero($1.i)
+                                                            | n -> Succ($1.i,f(n-1))in f $1.v }
 TermSeq     : 
     | Term                              { $1                                                    } 
 

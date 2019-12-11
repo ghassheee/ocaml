@@ -52,7 +52,7 @@ let process_file str ctx    =  (* string -> unit *)  (* print the evals of the l
 let main ()         =   parseArgs (); 
                         process_file (getFile ()) emptyctx 
 let ()              = set_max_boxes 1000
-let ()              = set_margin 67
+let ()              = set_margin 80
 let res             = Printexc.catch (
     fun () -> 
         try main();0 
