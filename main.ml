@@ -13,7 +13,7 @@ let compiler    lexbuf  = Parser.toplevel   Lexer.token lexbuf
 let parse' machine in_channel =   (* machine -> in_channel -> command list *) 
     let lexbuf              =   Lexing.from_channel in_channel  in
     let result,ctx          =   try     machine lexbuf emptyctx 
-                                with  | Parsing.Parse_error -> error (Lexer.info lexbuf) "Parse error" 
+                                with  | Parsing.Parse_error -> err (Lexer.info lexbuf) "Parse error" 
                                       | e -> raise e 
     in
     Parsing.clear_parser(); close_in in_channel; result
@@ -27,15 +27,15 @@ let addSearchpath f     = searchpath := f :: !searchpath
 let argDefs             = [ ("-I", String addSearchpath, "Append a dir to searchpath")]
 let fileCase            = ref (None : string option )
 let getFile ()          = match !fileCase with
-    | None                  -> err "Cannot get File"
+    | None                  -> e "Cannot get File"
     | Some s                -> s;;
 let readOneFile str     = match !fileCase with 
-    | Some (_)              -> err "Specify Single File."
+    | Some (_)              -> e "Specify Single File."
     | None                  -> fileCase := Some str 
 let parseArgs ()        = parse argDefs readOneFile "" ;; 
 let searchFile f        =  (* string -> in_channel *)
     let rec trynext         = function 
-        | []                    ->  err ("Could not find " ^ f)
+        | []                    ->  e ("Could not find " ^ f)
         | (d::rest)             ->  let name = if d = "" then f else (d ^ "/" ^ f) in
                                     try open_in name    with Sys_error m -> trynext rest in 
     trynext !searchpath
@@ -52,7 +52,7 @@ let process_file str ctx    =  (* string -> unit *)  (* print the evals of the l
 let main ()         =   parseArgs (); 
                         process_file (getFile ()) emptyctx 
 let ()              = set_max_boxes 1000
-let ()              = set_margin 80
+let ()              = set_margin 100
 let res             = Printexc.catch (
     fun () -> 
         try main();0 

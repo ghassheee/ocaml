@@ -131,6 +131,7 @@ Binder      :
 /************    TYPE    *************************************************************************/
 
 Type :
+    | LCID                              { fun ctx   ->  Var($1.i,name2index $1.i ctx $1.v,ctxlen ctx)}
     | UNIV                              { fun ctx   ->  Universe($1,0)                           }
     | BOOL                              { fun ctx   ->  Bool($1)                               }
     | NAT                               { fun ctx   ->  Nat($1)                                }
@@ -141,13 +142,9 @@ Type :
 
 /************    TERM    *************************************************************************/
 TermWrap    :
-    | TermWrap COMMA LCID EQ Term       { fun ctx   ->  Let($2,$3.v,$5 ctx,$1(addname ctx $3.v)) }
-    | Term     WHERE LCID EQ Term       { fun ctx   ->  Let($2,$3.v,$5 ctx,$1(addname ctx $3.v)) }
     | Term                              { $1                                                    } 
 Term        :
     | AppTerm                           { $1                                                    }
-    | LET LCID EQ Term IN Term          { fun ctx   ->  Let($1,$2.v,$4 ctx,$6(addname ctx $2.v))}
-    | LET USCORE EQ Term IN Term        { fun ctx   ->  Let($1,"_",$4 ctx,$6(addname ctx"_")) }
     | LAMBDA LCID COLON Type DOT Term   { fun ctx   ->  Abs($1,$2.v,$4 ctx,$6(addname ctx $2.v))}
     | IF Term THEN Term ELSE Term       { fun ctx   ->  If($1,$2 ctx,$4 ctx,$6 ctx)           }
 AppTerm     :

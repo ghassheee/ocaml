@@ -57,9 +57,9 @@ let rec pickfreshname ctx x     =   if isnamebound ctx x
                                         then pickfreshname ctx (x^"'")
                                         else ((x,BindName)::ctx), x
 let     index2name fi ctx n     =   try let (xn,_) = List.nth ctx n in xn 
-                                    with Failure _ -> error fi "Variable Lookup Failure"
+                                    with Failure _ -> err fi "Variable Lookup Failure"
 let rec name2index fi ctx xn    =   match ctx with 
-    | []                                -> error fi ("Identifier "^xn^" is unbound")
+    | []                                -> err fi ("Identifier "^xn^" is unbound")
     | (x,_) :: rest                     -> if x=xn then 0 else 1+(name2index fi rest xn)
 
 (* -------------------------------------------------- *) 
@@ -113,16 +113,16 @@ let tmInfo  = function
 (* -------------------------------------------------- *) 
 (* Bind *) 
 let rec getbind fi ctx i        =   try let (_,bind) = List.nth ctx i in bindshift(i+1)bind
-                                    with Failure _ -> error fi(getbind_err_msg i(ctxlen ctx))
+                                    with Failure _ -> err fi(getbind_err_msg i(ctxlen ctx))
 
-let getTypeFromContext fi ctx n =   match getbind fi ctx n with 
+let getTypeFromContext fi ctx i =   match getbind fi ctx i with 
     | BindVar(tyT)                    -> tyT
     | BindAbb(_,Some(tyT))            -> tyT
-    | BindAbb(_,None)                 -> error fi("No type recorded for var "^(index2name fi ctx n))
-    | BindName                        -> error fi " bind name error " 
-    | BindTyVar                       -> error fi " bind tyvar error " 
-    | BindTyAbb(tyT)                  -> error fi " bind tyabb error " 
-    | _                               -> error fi("getTypeFromCtx: Wrong bind "^(index2name fi ctx n))
+    | BindAbb(_,None)                 -> err fi("No type recorded for var "^(index2name fi ctx i))
+    | BindName                        -> err fi " bind name error " 
+    | BindTyVar                       -> err fi " bind tyvar error " 
+    | BindTyAbb(tyT)                  -> err fi " bind tyabb error " 
+    | _                               -> err fi("getTypeFromCtx: Wrong bind "^(index2name fi ctx i))
 
 (* -------------------------------------------------- *) 
 (* Value *)
@@ -183,9 +183,11 @@ and pr_ATerm outer ctx     = function
     | Universe(_,_)             ->  pr "𝒰"
     | Bool(_)                   ->  pr "𝐁"
     | Nat(_)                    ->  pr "𝐍"
-    | Var(fi,x,n)               -> let l = ctxlen ctx in 
+    | Var(fi,x,n)               ->  (* pr (index2name fi ctx x) *)
+        let l = ctxlen ctx in 
         if l = n then pr (index2name fi ctx x)
-        else (pr"[Context Error: ctxlen ";pi l;pr" != varctxlen ";pi n;pr" in { Γ:";pr(List.fold_left(fun s(x,_)->s^" "^x)""ctx);pr" }]")  
+        else (  pr"[Ctx Err: ctxlen ";pi l;pr" != varctxlen ";pi n;
+                pr" in { Γ:";pr(List.fold_left(fun s(x,_)->s^" "^x)""ctx);pr" }]")  
     | True(_)                   ->  pr "true"
     | False(_)                  ->  pr "false"
     | Zero(fi)                  ->  pr "0"

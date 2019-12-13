@@ -24,8 +24,8 @@ module Error = struct
            FI(f,l,c)            ->  pr f; pr ":"; pi l; pr "."; pi c; pr ":"
         | UNKNOWN               ->  pr "<Unknown file and line>: "
     let errfAt fi f         =   errf ( fun() -> printInfo fi; ps (); f())
-    let err s               =   errf ( fun() -> pr "Error: "; pr s; pn());;
-    let error fi s          =   errfAt fi (fun()-> pr s; pn())
+    let e s                 =   errf ( fun() -> pr "Error: "; pr s; pn());;
+    let err fi s            =   errfAt fi (fun()-> pr s; pn())
     let warning s           =   pr "Warning: "; pr s; pn()
     let warningAt fi s      =   printInfo fi; pr " Warning: "; pr s; pn()
 end

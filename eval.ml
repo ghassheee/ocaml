@@ -6,8 +6,12 @@ open Type
 exception NoRuleApplies
 
 let rec eval1 ctx  t = let p str = pr str;pr_tm ctx t;pn() in match t with  
+    | Var(fi,i,_)                           ->  (match getbind fi ctx i with 
+        | BindAbb(t,_)                      ->  t
+        | BindTyAbb(t)                      ->  t
+        | _                                 -> err fi "variable cannot be evaluated")
     | App(_,App(_,Pi(_),t1),t2)             ->  p"E-PI          : "; raise NoRuleApplies 
-    | App(_,Abs(_,x,t,u),v)when isval ctx v ->  p"E-APPABS      : "; tmSubstTop v u 
+    | App(_,Abs(_,_,_,t),v)when isval ctx v ->  p"E-APPABS      : "; tmSubstTop v t
     | App(fi,v,t)when isval ctx v           ->  p"E-APP1        : "; App(fi,v,eval1 ctx t) 
     | App(fi,t1,t2)                         ->  p"E-APP2        : "; App(fi,eval1 ctx t1,t2) 
     | If(_,True(_),t2,t3)                   ->  p"E-IFTRUE      : "; t2
@@ -35,7 +39,7 @@ let evalbind ctx            = function
 
 let checkbind fi ctx        = function 
     | BindAbb(t,None)           ->  BindAbb(t, Some(typeof ctx t))
-    | BindAbb(t,Some(tyT))      ->  if tyeqv ctx(typeof ctx t)tyT then BindAbb(t,Some(tyT))else error fi"TyAbbErr"
+    | BindAbb(t,Some(tyT))      ->  if tyeqv ctx(typeof ctx t)tyT then BindAbb(t,Some(tyT))else err fi"TyAbbErr"
     | bind                      ->  bind  
 
 let rec process_command ctx = function 
@@ -46,7 +50,7 @@ let rec process_command ctx = function
             pe"----------------   TYPE CHECKED !   ----------------";
             let t' = eval ctx t in
             pe"----------------   EVAL FINISHED !  ----------------"; 
-            pr_ATerm true ctx t'; pb 1 2; pr ": "; pr_tm ctx tyT; pn();pn(); ctx
+            pr_ATerm true ctx t'; pb 1 2; pr ": "; pr_tm ctx tyT;pn();pn();pn(); ctx
     | Bind(fi,x,bind)           ->  
             let bind' = checkbind fi ctx bind in 
             let bind'' = evalbind ctx bind' in 

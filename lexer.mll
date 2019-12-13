@@ -108,7 +108,7 @@ let addStr ch               =
     end
 let getStr ()                   = String.sub (!stringBuffer) 0 (!stringEnd)
 let extractLineno yytxt offset  = ios(String.sub yytxt offset(String.length yytxt-offset))
-let out_of_char x fi            = if x>255 then error fi"Illegal Char" else Char.chr x 
+let out_of_char x fi            = if x>255 then err fi"Illegal Char" else Char.chr x 
 }
 
 
@@ -138,9 +138,9 @@ rule token              = parse
 | "\""                      { resetStr(); startLex:=info lexbuf; string lexbuf      } 
 | ";;" nl                   { Parser.DOUBLESEMI(info lexbuf)                        }
 | eof                       { Parser.EOF(info lexbuf)                               }
-| comment_end               { error (info lexbuf) "Unmatched end of comment"        } 
+| comment_end               { err (info lexbuf) "Unmatched end of comment"        } 
 | comment                   { depth:=1;startLex:=info lexbuf;comment lexbuf;token lexbuf } 
-| _                         { error (info lexbuf) "Illegal character"               }
+| _                         { err (info lexbuf) "Illegal character"               }
 
 and show                = parse
 | "context"                 { Parser.SHOWCONTEXT(info lexbuf)                       }
@@ -149,13 +149,13 @@ and show                = parse
 and comment             = parse
 | comment                   { depth:=succ !depth; comment lexbuf                    } 
 | comment_end               { depth:=pred !depth; if !depth>0 then comment lexbuf   } 
-| eof                       { error (!startLex) "Comment not terminated"            } 
+| eof                       { err (!startLex) "Comment not terminated"            } 
 | [^ '\n']                  { comment lexbuf                                        }
 | "\n"                      { newline lexbuf; comment lexbuf                        } 
 
 and string              = parse
 | '"'                       { Parser.STRINGV{i= !startLex; v=getStr()}              }
-| eof                       { error(!startLex)"String not terminated"               } 
+| eof                       { err(!startLex)"String not terminated"               } 
 | '\\'                      { addStr(escaped lexbuf)              ; string lexbuf   } 
 | '\n'                      { addStr('\n') ; newline lexbuf       ; string lexbuf   } 
 | _                         { addStr(Lexing.lexeme_char lexbuf 0) ; string lexbuf   } 
@@ -166,7 +166,7 @@ and escaped             = parse
 | '"'                       { '\034'                                                }
 | '\''	                    { '\''                                                  }
 | digit digit digit         { out_of_char (ios(text lexbuf))(info lexbuf)           }
-| [^ '"' '\\' 't' 'n' '\''] { error (info lexbuf) "Illegal character constant"      }
+| [^ '"' '\\' 't' 'n' '\''] { err (info lexbuf) "Illegal character constant"      }
 
 
 

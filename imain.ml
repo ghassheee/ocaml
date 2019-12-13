@@ -13,7 +13,7 @@ let compiler    lexbuf  = Parser.toplevel   Lexer.token lexbuf
 let parse' machine in_channel =   (* machine -> in_channel -> command list *) 
     let lexbuf              =   Lexing.from_channel in_channel  in
     let result,ctx          =   try     machine lexbuf emptyctx 
-                                with  | Parsing.Parse_error -> error(Lexer.info lexbuf)"Parse error" 
+                                with  | Parsing.Parse_error -> err(Lexer.info lexbuf)"Parse error" 
                                       | e -> raise e 
     in
     Parsing.clear_parser(); close_in in_channel; result
