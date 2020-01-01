@@ -70,7 +70,7 @@ and eval1 ctx store t = let p str = pr str;pr_tm ctx t;pn() in match t with
     | TmIsZero(fi,t)                    ->  p"E-ISZRO       : "; let t',s'=eval1 ctx store t in TmIsZero(fi,t'),s'
     | TmRecord(fi,flds)                 ->  p"E-RCD         : "; 
         let rec ev_flds ctx store = function
-            | []                                -> [],store 
+            | []                                -> raise NoRuleApplies 
             | (l,v)::rest when isval ctx v      -> let flds',s'=ev_flds ctx store rest in ((l,v)::flds'),s'
             | (l,t)::rest                       -> let t',s'=eval1 ctx store t in ev_flds ctx s'((l,t')::rest) 
         in let flds',s'=ev_flds ctx store flds in TmRecord(fi,flds'),s'        

@@ -3,6 +3,7 @@ open Support.Error
 
 let reservedWords = [
   (* Keywords *)
+    ("Top",     fun i -> Parser.TOP i);
     ("ref",     fun i -> Parser.REF i);
     ("Ref",     fun i -> Parser.REFTYPE i);
     (*

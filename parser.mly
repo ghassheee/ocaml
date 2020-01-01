@@ -19,6 +19,9 @@ let pe = print_endline
 
 
 /* Keyword tokens */
+%token <Support.Error.info> TOP 
+
+
 %token <Support.Error.info> REF 
 %token <Support.Error.info> REFTYPE
 
@@ -165,10 +168,11 @@ ArrowType   :
     | AType ARROW ArrowType             { fun ctx   ->  TyArr($1 ctx, $3 ctx)                   }
     | AType                             { $1                                                    } 
 AType       : 
-    | UCID                              { fun ctx   ->  if isnamebound ctx $1.v then 
-                                                        TyVar(name2index $1.i ctx $1.v, ctxlen ctx) else 
-                                                            error $1.i"Type Not Found"            } 
+    | UCID                              { fun ctx   ->  if isnamebound ctx $1.v 
+                                            then    TyVar(name2index $1.i ctx $1.v, ctxlen ctx) 
+                                            else    TyId($1.v)                                  } 
     | LPAREN Type RPAREN                { $2                                                    } 
+    | TOP                               { fun ctx   ->  TyTop                                   } 
     | FLOAT                             { fun ctx   ->  TyFloat                                 }
     | STRING                            { fun ctx   ->  TyString                                } 
     | BOOL                              { fun ctx   ->  TyBool                                  } 

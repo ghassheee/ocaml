@@ -8,6 +8,7 @@ let soi = string_of_int
 
 type ty     =
     | TyVar     of int * int 
+    | TyId      of string 
     | TyTop
     | TyRef     of ty 
     | TyVariant of (string * ty) list 
@@ -261,11 +262,14 @@ and pr_ArrowType outer ctx  = function
     | tyT                       ->  pr_AType outer ctx tyT
 
 and pr_AType outer ctx      = function
+
+    | TyTop                     ->  pr "𝐓"
     | TyFloat                   ->  pr "𝐅"  
     | TyString                  ->  pr "𝐒" 
     | TyBool                    ->  pr "𝐁" 
     | TyNat                     ->  pr "𝐍"
     | TyUnit                    ->  pr "𝐔"
+    | TyId(s)                   ->  pr s
     | TyVar(i,n)                ->  if ctxlen ctx = n then pr(index2name dummyinfo ctx i)else pr"[BadIndex]"  
     | TyVariant(flds)           ->  pr"<"; oobox0(); pr_fldtys pr_Type outer ctx 1 flds; pr">"; cbox()
     | TyRecord(flds)            ->  pr"{"; oobox0(); pr_fldtys pr_Type outer ctx 1 flds; pr"}"; cbox()
