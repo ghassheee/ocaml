@@ -29,6 +29,8 @@ let rec tyeqv ctx tyS tyT   =
     | (TyVar(i,_),_) when istyabb ctx i ->  tyeqv ctx(gettyabb ctx i)tyT
     | (_,TyVar(i,_)) when istyabb ctx i ->  tyeqv ctx tyS(gettyabb ctx i)
     | TyVar(i,_),TyVar(j,_)             ->  i=j
+    | TyVar(i,_),_ when istyabb ctx i   ->  tyeqv ctx (gettyabb ctx i) tyT 
+    | _,TyVar(i,_) when istyabb ctx i   ->  tyeqv ctx tyS (gettyabb ctx i)
     | TyArr(tyS1,tyS2),TyArr(tyT1,tyT2) ->  tyeqv ctx tyS1 tyT1 && tyeqv ctx tyS2 tyT2
     | TyRecord(flds1),TyRecord(flds2)   ->  List.length flds1 = List.length flds2 &&
                                             List.for_all(fun(li2,tyTi2)-> 
@@ -154,7 +156,7 @@ let rec typeof ctx   t      = let p str = pr str;pr": (∣Γ∣=";pi(ctxlen ctx)
                 | TyArr(tyT11,tyT12)    -> if subtype ctx tyT2 tyT11 then tyT12 else error fi "type mismatch" 
                 | _                     -> error fi "arrow type expected" )
     | TmRecord(fi,flds)         ->  p"T-RCD         "; TyRecord(List.map (fun(l,t)->(l,typeof ctx t)) flds)
-    | TmProj(fi,t,l)            ->  p"T-PROJ        "; (match typeof ctx t with 
+    | TmProj(fi,t,l)            ->  p"T-PROJ        "; (match simplifyty ctx (typeof ctx t) with 
         | TyRecord(tyflds)          -> (try List.assoc l tyflds with Not_found -> error fi("label "^l^" not found")) 
         | _                         -> error fi "Record Type Expected" ) 
     | TmUnit(fi)                ->  p"T-UNIT        "; TyUnit

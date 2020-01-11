@@ -198,7 +198,7 @@ let rec getbind fi ctx i        =   try let (_,bind) = List.nth ctx i in bindshi
                                     with Failure _ -> error fi(getbind_err_msg i(ctxlen ctx))
 
 let getTypeFromContext fi ctx n =   match getbind fi ctx n with 
-    | BindTmVar(tyT)                      -> tyT
+    | BindTmVar(tyT)                    -> tyT
     | BindTmAbb(_,Some(tyT))            -> tyT
     | BindTmAbb(_,None)                 -> error fi ("No type recorded for variable "^(index2name fi ctx n))
     | _                                 -> error fi("getTypeFromContext: Wrong binding"^(index2name fi ctx n))
@@ -211,15 +211,15 @@ let rec isnum ctx   = function
     | _                             -> false
 
 let rec isval ctx   = function 
+    | TmLoc(_,_)                    -> true 
     | TmAbs(_,_,_,_)                -> true
     | TmUnit(_)                     -> true
     | TmTrue(_)                     -> true
     | TmFalse(_)                    -> true
-    | TmRecord(_,flds)              -> List.for_all (fun(_,t)->isval ctx t) flds 
+    | TmRecord(_,flds)              -> List.for_all (fun(l,t)->isval ctx t) flds 
     | TmTag(_,_,t,_)                -> isval ctx t
     | TmString(_,_)                 -> true
     | TmFloat(_,_)                  -> true
-    | TmLoc(_,_)                    -> true 
     | t when isnum ctx t            -> true
     | _                             -> false
 
