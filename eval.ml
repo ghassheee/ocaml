@@ -26,7 +26,7 @@ let rec evalF1 ctx store = function
 
 (* ----------------- EVALUATION ------------------- *) 
 
-and eval1 ctx store t = let p str = pr str;pi (ctxlen ctx);pr" ";pr_tm ctx t; pn() in match t with  
+and eval1 ctx store t = let p str = pr str;pr_tm ctx t; pn() in match t with  
     | TmRef(fi,v)when isval ctx v       ->  p"E-REFV        : "; let l,s' = addstore store v  in TmLoc(fi,l),s'
     | TmRef(fi,t)                       ->  p"E-REF         : "; let t',s'= eval1 ctx store t in TmRef(fi,t'),s'
     | TmDeref(fi,TmLoc(_,l))            ->  p"E-DEREFLOC    : "; (lookuploc store l,store)
