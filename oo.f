@@ -146,7 +146,7 @@ InstrCounterRep     = { x : Ref Nat, a: Ref Nat } ;
 instrCounterClass   = \r:InstrCounterRep. \self: Source InstrCounter.
                         let super = setCounterClass r self in 
                         {   get = super.get,
-                            set = (\n:Nat. (r.a := succ(!(r.a)); super.set n)),
+                            set = (\n:Nat. ((r.a := succ(!(r.a))) ; super.set n)),
                             inc = super.inc,
                             accesses = \u:Unit. !(r.a)  } ; 
 
@@ -156,6 +156,7 @@ newInstrCounter     = \u:Unit.
                         let cAux = ref dummyInstrCounter in 
                         (cAux := (instrCounterClass r cAux); !cAux);
 
-c = newInstrCounter ();
+c                   = newInstrCounter ();
 c.inc ();
-c.get ();
+
+(((\x:Nat.(x))) 1);

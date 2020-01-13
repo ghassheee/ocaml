@@ -1,1 +1,2 @@
-(\a:Float.\n:Float.  n *.  n) 1.0 2.0 ;
+(\a:Nat. succ a) 1;
+(\n:Float.  n *.  3.0) 2.0 ;
