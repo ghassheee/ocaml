@@ -21,7 +21,8 @@ let pe = print_endline
 /* Keyword tokens */
 %token <Support.Error.info> TOP 
 
-
+%token <Support.Error.info> SOURCE
+%token <Support.Error.info> SINK
 %token <Support.Error.info> REF 
 %token <Support.Error.info> REFTYPE
 
@@ -164,6 +165,8 @@ Binder      :
 Type        : 
     | ArrowType                         { $1                                                    } 
     | REFTYPE AType                     { fun ctx   ->  TyRef($2 ctx)                           } 
+    | SOURCE AType                      { fun ctx   ->  TySource($2 ctx)                        } 
+    | SINK AType                        { fun ctx   ->  TySink($2 ctx)                          } 
 ArrowType   :
     | AType ARROW ArrowType             { fun ctx   ->  TyArr($1 ctx, $3 ctx)                   }
     | AType                             { $1                                                    } 
@@ -206,7 +209,6 @@ Term        :
     | AppTerm                           { $1                                                    }
     | AppTerm COLONEQ AppTerm           { fun ctx   ->  TmAssign($2,$1 ctx,$3 ctx)              } 
     | CASE Term OF Cases                { fun ctx   ->  TmCase($1,$2 ctx,$4 ctx)                }
-    | Term COLON Term                   { fun ctx   ->  TmLet($2, "_", $3 ctx, $1 ctx)          } 
     | LET LCID EQ Term IN Term          { fun ctx   ->  TmLet($1,$2.v,$4 ctx,$6(addname ctx $2.v))}
     | LET USCORE EQ Term IN Term        { fun ctx   ->  TmLet($1,"_",$4 ctx,$6(addname ctx"_")) }
     | LAMBDA LCID COLON Type DOT Term   { fun ctx   ->  TmAbs($1,$2.v,$4 ctx,$6(addname ctx $2.v))}

@@ -4,8 +4,10 @@ open Support.Error
 let reservedWords = [
   (* Keywords *)
     ("Top",     fun i -> Parser.TOP i);
-    ("ref",     fun i -> Parser.REF i);
+    ("Source",  fun i -> Parser.SOURCE i);
+    ("Sink",    fun i -> Parser.SINK i);
     ("Ref",     fun i -> Parser.REFTYPE i);
+    ("ref",     fun i -> Parser.REF i);
     (*
     ("List",    fun i -> Parser.LIST i);
     ("tail",    fun i -> Parser.TAIL i);

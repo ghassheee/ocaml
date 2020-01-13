@@ -11,6 +11,8 @@ type ty     =
     | TyId      of string 
     | TyTop
     | TyRef     of ty 
+    | TySource  of ty
+    | TySink    of ty 
     | TyVariant of (string * ty) list 
     | TyRecord  of (string * ty) list 
     | TyArr     of ty * ty
@@ -111,6 +113,8 @@ let rec name2index fi ctx xn    =   match ctx with
 let rec tyWalk onVar c          = let f = onVar in function 
     | TyVar(x,n)                -> onVar c x n
     | TyRef(tyT)                -> TyRef(tyWalk f c tyT) 
+    | TySource(tyT)             -> TySource(tyWalk f c tyT)
+    | TySink(tyT)               -> TySink(tyWalk f c tyT) 
     | TyVariant(fieldtys)       -> TyVariant(List.map (fun(l,tyT)->(l,tyWalk f c tyT)) fieldtys) 
     | TyRecord(fieldtys)        -> TyRecord(List.map (fun(l,tyT)->(l,tyWalk f c tyT)) fieldtys) 
     | TyArr(tyT1,tyT2)          -> TyArr(tyWalk f c tyT1,tyWalk f c tyT2) 
@@ -159,7 +163,7 @@ let tySubstOnVar j tyS tyT  = fun    c x n ->   if x=j+c then tyShift c tyS else
 let tySubst      j tyS tyT  = tyWalk(tySubstOnVar j tyS tyT)0 tyT
 
 let tmSubstOnVar j s t      = fun fi c x n ->   if x=j+c then tmShift c s else TmVar(fi, x, n) 
-let tmSubst      j s t      = tmWalk (tmSubstOnVar j s t) (fun k x -> x) 0 t
+let tmSubst      j s t      = tmWalk (tmSubstOnVar j s t) (fun x y -> y) 0 t
 let tmSubstTop     s t      = pe"SUBSTITUTE    : [x↦s]t"; tmShift (-1) (tmSubst 0 (tmShift 1 s) t) 
 
 
@@ -211,11 +215,11 @@ let rec isnum ctx   = function
     | _                             -> false
 
 let rec isval ctx   = function 
-    | TmLoc(_,_)                    -> true 
-    | TmAbs(_,_,_,_)                -> true
-    | TmUnit(_)                     -> true
     | TmTrue(_)                     -> true
     | TmFalse(_)                    -> true
+    | TmAbs(_,_,_,_)                -> true
+    | TmLoc(_,_)                    -> true 
+    | TmUnit(_)                     -> true
     | TmRecord(_,flds)              -> List.for_all (fun(l,t)->isval ctx t) flds 
     | TmTag(_,_,t,_)                -> isval ctx t
     | TmString(_,_)                 -> true
@@ -252,6 +256,8 @@ let rec pr_flds prTm outer ctx i =
 (* Type Print *) 
 let rec pr_Type outer ctx   = function
     | TyRef(tyT)                ->  pr"Ref ";pr_AType false ctx tyT
+    | TySource(tyT)             ->  pr"Source ";pr_AType false ctx tyT 
+    | TySink(tyT)               ->  pr"Sink ";pr_AType false ctx tyT 
     | tyT                       ->  pr_ArrowType outer ctx tyT
 
 and pr_ArrowType outer ctx  = function
@@ -297,6 +303,7 @@ let rec pr_Term outer ctx  = function
         pr"let ";pr x;pr" = ";pr_Term false ctx t1;ps();pr"in";ps();pr_Term false(addname ctx x)t2;   cbox()
     | TmAbs(_,x,tyT1,t2)        ->  let (ctx',x')=pickfreshname ctx x in obox();
         pr"λ";pr x';pr":";pr_Type false ctx tyT1;pr".";psbr((not(small t2))||outer);pr_Term outer ctx' t2;  cbox()
+    | TmFix(_,t)                ->  pr"fix "   ;pr_ATerm false ctx t
     | TmIf(_, t1, t2, t3)       ->  obox0();
         pr"if "  ;pr_Term false ctx t1;ps();
         pr"then ";pr_Term false ctx t2;ps();
@@ -313,7 +320,6 @@ and pr_AppTerm outer ctx   = function
     | TmIsZero(_,t)             ->  pr"iszero ";pr_ATerm false ctx t
     | TmAscribe(_,t,tyT)        ->  pr_AppTerm outer ctx t
     | TmTimesfloat(_,t1,t2)     ->  pr_AppTerm outer ctx t1;pr" *. ";pr_AppTerm outer ctx t2
-    | TmFix(_,t)                ->  pr"fix "   ;pr_ATerm false ctx t
     | TmRef(_,t)                ->  pr"ref "   ;pr_ATerm false ctx t
     | TmDeref(_,t)              ->  pr"!"      ;pr_ATerm false ctx t  
     | t                         ->  pr_PathTerm outer ctx t 
@@ -323,10 +329,9 @@ and pr_PathTerm outer ctx   = function
     | t                         ->  pr_ATerm outer ctx t
 
 and pr_ATerm outer ctx     = function 
-    | TmVar(fi,x,n)             -> let l = ctxlen ctx in 
-        if l = n 
-            then pr (index2name fi ctx x)
-            else (pr"[NameContext Error: ";pi l;pr"!=";pi n;pr" in { Γ:";pr(List.fold_left(fun s(x,_)->s^" "^x)""ctx);pr" }]")  
+    | TmVar(fi,x,n)             -> let l = ctxlen ctx in if l = n 
+        then pr (index2name fi ctx x)
+        else (pr"[ContextErr: ";pi l;pr"!=";pi n;pr" in { Γ:";pr(List.fold_left(fun s(x,_)->s^" "^x)""ctx);pr" }]")  
     | TmTag(fi,l,t,tyT)         ->  obox(); 
         pr"<";pr l;pr"=";pr_Term false ctx t;pr">";ps();pr" : ";pr_Type outer ctx tyT;  cbox()
     | TmString(_,s)             ->  pr "\"";pr s; pr"\""

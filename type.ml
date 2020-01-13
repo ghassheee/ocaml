@@ -29,6 +29,9 @@ let rec tyeqv ctx tyS tyT   =
     | (TyVar(i,_),_) when istyabb ctx i ->  tyeqv ctx(gettyabb ctx i)tyT
     | (_,TyVar(i,_)) when istyabb ctx i ->  tyeqv ctx tyS(gettyabb ctx i)
     | TyVar(i,_),TyVar(j,_)             ->  i=j
+    | TyRef(tyS'),TyRef(tyT')           ->  tyeqv ctx tyS' tyT' 
+    | TySource(tyS'),TySource(tyT')     ->  tyeqv ctx tyS' tyT' 
+    | TySink(tyS'),TySink(tyT')         ->  tyeqv ctx tyS' tyT' 
     | TyVar(i,_),_ when istyabb ctx i   ->  tyeqv ctx (gettyabb ctx i) tyT 
     | _,TyVar(i,_) when istyabb ctx i   ->  tyeqv ctx tyS (gettyabb ctx i)
     | TyArr(tyS1,tyS2),TyArr(tyT1,tyT2) ->  tyeqv ctx tyS1 tyT1 && tyeqv ctx tyS2 tyT2
@@ -53,6 +56,11 @@ let rec subtype ctx tyS tyT     =
     | TyRecord(fS),TyRecord(fT)         ->  List.for_all ( fun(li,tyTi) -> 
                                                 try let tySi = List.assoc li fS in subtype ctx tySi tyTi
                                                 with Not_found -> false ) fT 
+    | TyRef(tyS'),TyRef(tyT')           ->  subtype ctx tyS' tyT' && subtype ctx tyT' tyS' 
+    | TyRef(tyS'),TySource(tyT')        ->  subtype ctx tyS' tyT'
+    | TySource(tyS'),TySource(tyT')     ->  subtype ctx tyS' tyT'
+    | TyRef(tyS'),TySink(tyT')          ->  subtype ctx tyT' tyS'
+    | TySink(tyS'),TySink(tyT')         ->  subtype ctx tyT' tyS' 
     | _,_                               ->  false 
 
 (* ---------- JOIN & MEET ---------- *)
@@ -72,6 +80,16 @@ let rec join ctx tyS tyT        =
                                             TyRecord(commonflds)
     | TyArr(tyS1,tyS2),TyArr(tyT1,tyT2) ->  (try     TyArr(meet ctx tyS1 tyT1, join ctx tyS2 tyT2) 
                                             with Not_found  -> TyTop)
+    | TyRef(tyS),TyRef(tyT)             ->  if subtype ctx tyS tyT && subtype ctx tyT tyS 
+                                                then TyRef(tyS)
+                                                else TySource(join ctx tyS tyT) 
+    | TyRef(tyS),TySource(tyT)          ->  TySource(join ctx tyS tyT) 
+    | TySource(tyS),TyRef(tyT)          ->  TySource(join ctx tyS tyT) 
+    | TySource(tyS),TySource(tyT)       ->  TySource(join ctx tyS tyT) 
+    | TyRef(tyS),TySink(tyT)            ->  TySink(meet ctx tyS tyT) 
+    | TySink(tyS),TyRef(tyT)            ->  TySink(meet ctx tyS tyT) 
+    | TySink(tyS),TySink(tyT)           ->  TySink(meet ctx tyS tyT) 
+    
     | _                                 ->  TyTop
 
 and meet ctx tyS tyT                = 
@@ -92,6 +110,15 @@ and meet ctx tyS tyT                =
                                             let allflds = List.map f allLabels in 
                                             TyRecord(allflds) 
     | TyArr(tyS1,tyS2),TyArr(tyT1,tyT2) ->  TyArr(join ctx tyS1 tyT1, meet ctx tyS2 tyT2) 
+    | TyRef(tyS),TyRef(tyT)             ->  if subtype ctx tyS tyT && subtype ctx tyT tyS 
+                                                then TyRef(tyS)
+                                                else TySource(meet ctx tyS tyT) 
+    | TyRef(tyS),TySource(tyT)          ->  TySource(meet ctx tyS tyT) 
+    | TySource(tyS),TyRef(tyT)          ->  TySource(meet ctx tyS tyT) 
+    | TySource(tyS),TySource(tyT)       ->  TySource(meet ctx tyS tyT) 
+    | TyRef(tyS),TySink(tyT)            ->  TySink(join ctx tyS tyT) 
+    | TySink(tyS),TyRef(tyT)            ->  TySink(join ctx tyS tyT) 
+    | TySink(tyS),TySink(tyT)           ->  TySink(join ctx tyS tyT) 
     | _                                 ->  pr"hoge";raise Not_found  
 
 
@@ -104,13 +131,17 @@ let rec typeof ctx   t      = let p str = pr str;pr": (∣Γ∣=";pi(ctxlen ctx)
     | TmRef(fi,t)               ->  p"T-REF         "; TyRef(typeof ctx t)
     | TmDeref(fi,t)             ->  p"T-DEREF       "; (match simplifyty ctx (typeof ctx t) with 
         | TyRef(tyT)                -> tyT
+        | TySource(tyT)             -> tyT 
         | _                         -> error fi "argument of ! does not have a Ref Type" )
     | TmAssign(fi,t1,t2)        ->  p"T-ASSIGN      "; (match simplifyty ctx (typeof ctx t1) with
         | TyRef(tyT)                ->  let tyT2 = typeof ctx t2 in  
                                         if subtype ctx tyT2 tyT && subtype ctx tyT tyT2 
                                             then TyUnit 
                                             else error fi":= cannot assign type"
-        | _                         -> error fi "arguments of := does not have matching type" ) 
+        | TySink(tyT)               ->  if subtype ctx (typeof ctx t2) tyT 
+                                            then TyUnit
+                                            else error fi":= cannot assign type" 
+        | _                         ->  error fi "arguments of := does not have matching type" ) 
     | TmFix(fi,t1)              ->  p"T-FIX         "; (match typeof ctx t1 with 
         | TyArr(tyS,tyT)            ->  if subtype ctx tyT tyS 
                                             then tyT 
