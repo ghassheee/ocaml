@@ -18,7 +18,10 @@ let rec computety ctx tyT   = match tyT with
     | TyVar(i,_)when istyabb ctx i  -> gettyabb ctx i 
     | _                             -> raise NoRuleApplies
 
-let rec simplifyty ctx tyT  = try simplifyty ctx(computety ctx tyT) with NoRuleApplies -> tyT
+let rec simplifyty ctx tyT  =   pr"SIMPLIFYTY    : ";pr_ty ctx tyT;pn(); 
+                                try let tyT' = simplifyty ctx(computety ctx tyT) in 
+                                    pr"SIMPLIFIED    : ";pr_ty ctx tyT';pn();tyT'
+                                with NoRuleApplies -> tyT
 
 (* ------- TYPE EQUIVALENCE -------- *)
 
@@ -26,6 +29,7 @@ let rec tyeqv ctx tyS tyT   =
     let tyS = simplifyty ctx tyS in 
     let tyT = simplifyty ctx tyT in 
     match (tyS,tyT) with 
+    | TyRec(x,tyS),TyRec(_,tyT)         ->  tyeqv (addname ctx x) tyS tyT
     | (TyVar(i,_),_) when istyabb ctx i ->  tyeqv ctx(gettyabb ctx i)tyT
     | (_,TyVar(i,_)) when istyabb ctx i ->  tyeqv ctx tyS(gettyabb ctx i)
     | TyVar(i,_),TyVar(j,_)             ->  i=j
@@ -62,6 +66,23 @@ let rec subtype ctx tyS tyT     =
     | TyRef(tyS'),TySink(tyT')          ->  subtype ctx tyT' tyS'
     | TySink(tyS'),TySink(tyT')         ->  subtype ctx tyT' tyS' 
     | _,_                               ->  false 
+
+
+(* ------- INFINITE SUBTYPING --------*)
+
+let rec subtype' a tyS tyT     = 
+    if List.mem (tyS,tyT) a 
+        then a
+        else let a0 = (tyS,tyT)::a in match (tyS,tyT) with 
+        | TyRecord(fS),TyRecord(fT)     ->  (match fS,fT with 
+            | _,((li,tyTi)::rT)             ->  let tySi    = List.assoc li fS in 
+                                                let rS      = List.remove_assoc li fS in 
+                                                let a1      = subtype' a0 tySi tyTi in
+                                                subtype' a1 (TyRecord(rS)) (TyRecord(rT)))
+        | TyArr(tyS1,tyS2),TyArr(tyT1,tyT2)
+                                        ->  let a1 = subtype' a0 tyT1 tyS1 in 
+                                            subtype' a1 tyS2 tyT2
+        | _,TyRec(y,tyT1)               ->  subtype' a0 tyS tyT    
 
 (* ---------- JOIN & MEET ---------- *)
 
@@ -128,6 +149,12 @@ and meet ctx tyS tyT                =
 (* ----------- TYPING --------------- *) 
 
 let rec typeof ctx   t      = let p str = pr str;pr": (∣Γ∣=";pi(ctxlen ctx);pr") ";pr_tm ctx t;pn() in match t with
+    | TmFold(fi,tyS)            ->  p"T-FLD         "; (match simplifyty ctx tyS with 
+        | TyRec(_,tyT)              -> TyArr(tySubstTop tyS tyT,tyS) 
+        | _                         -> error fi "Recursive Type Expected" )
+    | TmUnfold(fi,tyS)          ->  p"T-UNFLD       "; (match simplifyty ctx tyS with 
+        | TyRec(_,tyT)              -> TyArr(tyS,tySubstTop tyS tyT) 
+        | _                         -> error fi "Recursive Type Expected" )
     | TmRef(fi,t)               ->  p"T-REF         "; TyRef(typeof ctx t)
     | TmDeref(fi,t)             ->  p"T-DEREF       "; (match simplifyty ctx (typeof ctx t) with 
         | TyRef(tyT)                -> tyT
@@ -142,7 +169,7 @@ let rec typeof ctx   t      = let p str = pr str;pr": (∣Γ∣=";pi(ctxlen ctx)
                                             then TyUnit
                                             else error fi":= cannot assign type" 
         | _                         ->  error fi "arguments of := does not have matching type" ) 
-    | TmFix(fi,t1)              ->  p"T-FIX         "; (match typeof ctx t1 with 
+    | TmFix(fi,t1)              ->  p"T-FIX         "; (match simplifyty ctx (typeof ctx t1) with 
         | TyArr(tyS,tyT)            ->  if subtype ctx tyT tyS 
                                             then tyT 
                                             else error fi"fix can take 'x' whose type: A -> A" 

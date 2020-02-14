@@ -3,6 +3,10 @@ open Support.Error
 
 let reservedWords = [
   (* Keywords *)
+    ("Rec",     fun i -> Parser.REC i);
+    ("fold",    fun i -> Parser.FOLD i);
+    ("unfold",  fun i -> Parser.UNFOLD i);
+
     ("Top",     fun i -> Parser.TOP i);
     ("Source",  fun i -> Parser.SOURCE i);
     ("Sink",    fun i -> Parser.SINK i);

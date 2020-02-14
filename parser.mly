@@ -19,6 +19,12 @@ let pe = print_endline
 
 
 /* Keyword tokens */
+
+%token <Support.Error.info> TYPE
+%token <Support.Error.info> REC
+%token <Support.Error.info> FOLD
+%token <Support.Error.info> UNFOLD
+
 %token <Support.Error.info> TOP 
 
 %token <Support.Error.info> SOURCE
@@ -164,6 +170,7 @@ Binder      :
 
 Type        : 
     | ArrowType                         { $1                                                        } 
+    | REC UCID DOT Type                 { fun ctx   ->  TyRec($2.v, $4(addname ctx $2.v))           } 
     | REFTYPE AType                     { fun ctx   ->  TyRef($2 ctx)                               } 
     | SOURCE AType                      { fun ctx   ->  TySource($2 ctx)                            } 
     | SINK AType                        { fun ctx   ->  TySink($2 ctx)                              } 
@@ -225,6 +232,8 @@ AppTerm     :
     | PathTerm                          { $1                                                        }
     | AppTerm PathTerm                  { fun ctx   ->  let t=$1 ctx in TmApp(tmInfo t,t,$2 ctx)    }
     | PathTerm TIMESFLOAT PathTerm      { fun ctx   ->  TmTimesfloat($2,$1 ctx,$3 ctx)              } 
+    | FOLD   LSQUARE Type RSQUARE       { fun ctx   ->  TmFold($1,   $3 ctx)                        } 
+    | UNFOLD LSQUARE Type RSQUARE       { fun ctx   ->  TmUnfold($1, $3 ctx)                        } 
     | FIX     PathTerm                  { fun ctx   ->  TmFix($1, $2 ctx )                          }
     | REF     PathTerm                  { fun ctx   ->  TmRef($1, $2 ctx )                          } 
     | BANG    PathTerm                  { fun ctx   ->  TmDeref($1, $2 ctx )                        } 

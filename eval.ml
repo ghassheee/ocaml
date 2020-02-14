@@ -62,6 +62,12 @@ and eval1 ctx store t = let p str = pr str;pr_tm ctx t; pn() in match t with
     | TmAscribe(fi,u,tyT)               ->  p"E-ASCRIBE     : ";let t',s'=eval1 ctx store u in TmAscribe(fi,t',tyT),s' 
     | TmLet(fi,x,v1,t2)when isval ctx v1->  p"E-LETV        : "; tmSubstTop v1 t2, store
     | TmLet(fi,x,t1,t2)                 ->  p"E-LET         : "; let t1',s'=eval1 ctx store t1 in TmLet(fi,x,t1',t2),s'
+    | TmApp(fi,TmUnfold(_,_),TmApp(_,TmFold(_,_),v)) when isval ctx v 
+                                        ->  p"E-UNFLDFLD    : "; v,store
+    | TmApp(fi,TmFold(f,tyT),t)         ->  p"E-FLD         : "; let t',s'=eval1 ctx store t in 
+                                                                 TmApp(fi,TmFold(f,tyT),t'),s'
+    | TmApp(fi,TmUnfold(f,tyT),t)       ->  p"E-UNFLD       : "; let t',s'=eval1 ctx store t in 
+                                                                 TmApp(fi,TmUnfold(f,tyT),t'),s'
     | TmApp(fi,TmAbs(_,x,_,u),v) 
         when isval ctx v                ->  p"E-APPABS      : "; tmSubstTop v u ,store
     | TmApp(fi,v,t)                                          

@@ -17,6 +17,7 @@ type ty     =
     | TyRecord  of (string * ty) list 
     | TyArr     of ty * ty
     | TyList    of ty 
+    | TyRec     of string * ty
     | TyFloat 
     | TyString  
     | TyUnit
@@ -25,6 +26,9 @@ type ty     =
 ;;
 
 type term =
+    (* Recursive *)
+    | TmFold        of info * ty 
+    | TmUnfold      of info * ty 
     (* Ref *)
     | TmRef         of info * term 
     | TmDeref       of info * term 
@@ -118,6 +122,7 @@ let rec tyWalk onVar c          = let f = onVar in function
     | TyVariant(fieldtys)       -> TyVariant(List.map (fun(l,tyT)->(l,tyWalk f c tyT)) fieldtys) 
     | TyRecord(fieldtys)        -> TyRecord(List.map (fun(l,tyT)->(l,tyWalk f c tyT)) fieldtys) 
     | TyArr(tyT1,tyT2)          -> TyArr(tyWalk f c tyT1,tyWalk f c tyT2) 
+    | TyRec(x,tyT)              -> TyRec(x,tyWalk f (c+1) tyT)
     | tyT                       -> tyT
 
 let rec tmWalk onVar onType c   = let (f,g) = (onVar,onType) in function 
@@ -139,6 +144,8 @@ let rec tmWalk onVar onType c   = let (f,g) = (onVar,onType) in function
     | TmProj(fi,t,i)            -> TmProj(fi,tmWalk f g c t,i) 
     | TmFix(fi,t)               -> TmFix(fi,tmWalk f g c t)
     | TmTimesfloat(fi,t1,t2)    -> TmTimesfloat(fi,tmWalk f g c t1,tmWalk f g c t2)
+    | TmFold(fi,tyT)            -> TmFold(fi,g c tyT)
+    | TmUnfold(fi,tyT)          -> TmUnfold(fi,g c tyT) 
     | t                         -> t
 
 let tyShiftOnVar d          = fun c x n     ->  if x>=c then TyVar(x+d,n+d)     else TyVar(x,n+d) 
@@ -163,6 +170,7 @@ let bindshift d             = function
 (* Substitution *) 
 let tySubstOnVar j tyS tyT  = fun    c x n ->   if x=j+c then tyShift c tyS else TyVar(x,n) 
 let tySubst      j tyS tyT  = tyWalk(tySubstOnVar j tyS tyT)0 tyT
+let tySubstTop     tyS tyT  = pe"TYSUBSTTOP    : [X↦S]T"; tyShift (-1) (tySubst 0 (tyShift 1 tyS) tyT)
 
 let tmSubstOnVar j s t      = fun fi c x n ->   if x=j+c then tmShift c s else TmVar(fi, x, n) 
 let tmSubst      j s t      = tmWalk (tmSubstOnVar j s t) (fun x y -> y) 0 t
@@ -197,6 +205,8 @@ let tmInfo  = function
     | TmFloat(fi,_)         -> fi
     | TmTimesfloat(fi,_,_)  -> fi 
     | TmFix(fi,_)           -> fi
+    | TmFold(fi,_)          -> fi 
+    | TmUnfold(fi,_)        -> fi 
 
 (* -------------------------------------------------- *) 
 (* Bind *) 
@@ -227,6 +237,7 @@ let rec isval ctx   = function
     | TmString(_,_)                 -> true
     | TmFloat(_,_)                  -> true
     | t when isnum ctx t            -> true
+    | TmApp(_,TmFold(_,_),t)        -> isval ctx t 
     | _                             -> false
 
 
@@ -257,6 +268,8 @@ let rec pr_flds prTm outer ctx i =
 (* -------------------------------------------------- *) 
 (* Type Print *) 
 let rec pr_Type outer ctx   = function
+    | TyRec(x,tyT)              ->  let ctx',x = pickfreshname ctx x in 
+                                    obox(); pr"μ";pr x;pr".";ps();pr_Type outer ctx' tyT; cbox()
     | TyRef(tyT)                ->  pr"Ref ";pr_AType false ctx tyT
     | TySource(tyT)             ->  pr"Source ";pr_AType false ctx tyT 
     | TySink(tyT)               ->  pr"Sink ";pr_AType false ctx tyT 
@@ -314,6 +327,8 @@ let rec pr_Term outer ctx  = function
 
 and pr_AppTerm outer ctx   = function 
     | TmApp(_, t1, t2)          ->  obox0();  pr_AppTerm false ctx t1;ps();pr_ATerm false ctx t2;  cbox();
+    | TmFold(_,tyT)             ->  obox0();pr"fold [";pr_Type false ctx tyT;pr"]";cbox()
+    | TmUnfold(_,tyT)           ->  obox0();pr"unfold [";pr_Type false ctx tyT;pr"]";cbox()
     | TmRef(_,t)                ->  pr"ref "   ;pr_ATerm false ctx t
     | TmDeref(_,t)              ->  pr"!"      ;pr_ATerm false ctx t  
     | TmPred(_,t)               ->  pr"pred "  ;pr_ATerm false ctx t
