@@ -89,4 +89,4 @@ type token =
 val toplevel :
   (Lexing.lexbuf  -> token) -> Lexing.lexbuf -> Syntax.context -> (Syntax.command list * Syntax.context)
 val input :
-  (Lexing.lexbuf  -> token) -> Lexing.lexbuf -> Syntax.context -> Eval.store -> (Syntax.command list * Syntax.context * Eval.store)
+  (Lexing.lexbuf  -> token) -> Lexing.lexbuf -> Syntax.context -> Eval.store -> Syntax.uvargenerator -> Syntax.constr -> (Syntax.command list * Syntax.context * Eval.store * Syntax.uvargenerator * Syntax.constr)

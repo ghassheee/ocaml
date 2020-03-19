@@ -2,6 +2,7 @@ open Support.Pervasive
 open Support.Error
 open Syntax
 open Type
+open Subtype
 
 exception NoRuleApplies
 
@@ -100,10 +101,44 @@ let evalbind ctx store      = function
     | bind                      ->  bind,store
 
 let checkbind fi ctx        = function 
-    | BindTmAbb(t,None)         ->  BindTmAbb(t, Some(typeof ctx t))
+    | BindTmAbb(t,None)         ->  let tyT = typeof ctx t in BindTmAbb(t, Some(tyT))
     | BindTmAbb(t,Some(tyT))    ->  if tyeqv ctx(typeof ctx t)tyT then BindTmAbb(t,Some(tyT))else error fi"TyAbbErr"
     | bind                      ->  bind  
 
+let process_command ctx store nextuvar constr = function 
+    | Eval(fi,t)                ->
+            pn();pr_tm ctx t;pn();
+            pe"----------------------------------------------------";
+            let tyT,nextuvar',constr' = recon ctx nextuvar t in
+            pe"----------------   TYPE CHECKED !   ----------------";
+            let t',store'   = eval ctx store t in
+            pe"----------------   EVAL FINISHED !  ----------------"; 
+            let constr''    = combineconstr constr constr' in 
+            pr_constr ctx constr';pn(); flush stdout;
+            pe"----------------  CONSTRAINTS LIST  ----------------";
+            let sol         = unify fi ctx "Could not simplify constraints" constr' in
+            pr_constr ctx sol ;pn(); 
+            pe"----------------   SOLUTION FOUND ! ----------------";
+            pr_tm ctx t';pb 1 2;pr ": ";pr_ty ctx (apply_constr sol tyT);pn();pn(); 
+            ctx,store',nextuvar',constr''
+    | Bind(fi,x,bind)           ->  
+            pr x;pr" ";prbindty ctx bind;pn();
+            pe"----------------   BINDING...   --------------------";
+            let bind' = checkbind fi ctx bind in 
+            let bind'',store' = evalbind ctx store bind' in 
+            pe"----------------   BIND DONE !  --------------------";
+            pn();pn(); addbind ctx x bind'',(shiftstore 1 store'), uvargen, constr
+
+let rec process_commands ctx store nextuvar constr = function 
+    | []                        ->  ctx,store,nextuvar,constr 
+    | cmd::cmds                 ->  oobox0;
+                                    let ctx',store',nextuvar',constr' 
+                                        = process_command ctx store nextuvar constr cmd in 
+                                    Format.print_flush();
+                                    process_commands ctx' store' nextuvar' constr' cmds 
+
+
+(*
 let process_command ctx store = function 
     | Eval(fi,t)                ->
             pn();pr_tm ctx t;pn();
@@ -121,6 +156,9 @@ let process_command ctx store = function
             pe"----------------   BIND DONE !  --------------------";
             pn();pn(); addbind ctx x bind'',(shiftstore 1 store')
 
+
+
+
 let rec process_commands ctx store = function 
     | []                        ->  ctx,store 
     | cmd::cmds                 ->  oobox0;
@@ -129,4 +167,4 @@ let rec process_commands ctx store = function
                                     process_commands ctx' store' cmds 
 
 
-
+*) 

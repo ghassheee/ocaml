@@ -1,149 +1,116 @@
 open Support.Error
 open Support.Pervasive
 open Syntax
+open Subtype
 
 exception NoRuleApplies
 
 
-(* ---------------------------------- *) 
-let istyabb ctx i           = match getbind dummyinfo ctx i with 
-    | BindTyAbb(_)                  -> true
-    | _                             -> false
 
-let gettyabb ctx i          = match getbind dummyinfo ctx i with 
-    | BindTyAbb(tyT)                -> tyT
-    | _                             -> raise NoRuleApplies 
+(* -------- CONSTRAINTS  --------- *)
 
-let rec computety ctx tyT   = match tyT with 
-    | TyVar(i,_)when istyabb ctx i  -> gettyabb ctx i 
-    | _                             -> raise NoRuleApplies
+let rec substinty x tyT   = function 
+        | TyArr(tyS1,tyS2)      -> TyArr(substinty x tyT tyS1,substinty x tyT tyS2) 
+        | TyId(s)               -> (match tyT with 
+            | TyRec(_,_)            -> tyT 
+            | _                     -> if s=x then tyT else TyId(s))
+        | tyT                   -> tyT
 
-let rec simplifyty ctx tyT  =   pr"SIMPLIFYTY    : ";pr_ty ctx tyT;pn(); 
-                                try let tyT' = simplifyty ctx(computety ctx tyT) in 
-                                    pr"SIMPLIFIED    : ";pr_ty ctx tyT';pn();tyT'
-                                with NoRuleApplies -> tyT
+let substinconstr x tyT   =
+    List.map (fun(tyS1,tyS2)->(substinty x tyT tyS1,substinty x tyT tyS2)) 
 
-(* ------- TYPE EQUIVALENCE -------- *)
+let apply_constr constr tyT =
+    List.fold_left (fun tyS (TyId(x),tyC2) -> substinty x tyC2 tyS) tyT (List.rev constr);;
 
-let rec tyeqv ctx tyS tyT   = 
-    let tyS = simplifyty ctx tyS in 
-    let tyT = simplifyty ctx tyT in 
-    match (tyS,tyT) with 
-    | TyRec(x,tyS),TyRec(_,tyT)         ->  tyeqv (addname ctx x) tyS tyT
-    | (TyVar(i,_),_) when istyabb ctx i ->  tyeqv ctx(gettyabb ctx i)tyT
-    | (_,TyVar(i,_)) when istyabb ctx i ->  tyeqv ctx tyS(gettyabb ctx i)
-    | TyVar(i,_),TyVar(j,_)             ->  i=j
-    | TyRef(tyS'),TyRef(tyT')           ->  tyeqv ctx tyS' tyT' 
-    | TySource(tyS'),TySource(tyT')     ->  tyeqv ctx tyS' tyT' 
-    | TySink(tyS'),TySink(tyT')         ->  tyeqv ctx tyS' tyT' 
-    | TyVar(i,_),_ when istyabb ctx i   ->  tyeqv ctx (gettyabb ctx i) tyT 
-    | _,TyVar(i,_) when istyabb ctx i   ->  tyeqv ctx tyS (gettyabb ctx i)
-    | TyArr(tyS1,tyS2),TyArr(tyT1,tyT2) ->  tyeqv ctx tyS1 tyT1 && tyeqv ctx tyS2 tyT2
-    | TyRecord(flds1),TyRecord(flds2)   ->  List.length flds1 = List.length flds2 &&
-                                            List.for_all(fun(li2,tyTi2)-> 
-                                                try let tyTi1 = List.assoc li2 flds1 in tyeqv ctx tyTi1 tyTi2 
-                                                with Not_found -> false) flds2
-    | TyVariant(flds1),TyVariant(flds2) ->  List.length flds1 = List.length flds2 &&
-                                            List.for_all(fun(li2,tyTi2)->
-                                                try let tyTi1 = List.assoc li2 flds1 in tyeqv ctx tyTi1 tyTi2
-                                                with Not_found -> false) flds2 
-    | (tyS,tyT)                         -> tyS = tyT 
-
-(* --------- SUBTYPING -------------- *)
-
-let rec subtype ctx tyS tyT     = 
-    tyeqv ctx tyS tyT || 
-    let tyS = simplifyty ctx tyS in
-    let tyT = simplifyty ctx tyT in match (tyS,tyT) with 
-    | _,TyTop                           ->  true
-    | TyArr(s1,s2),TyArr(t1,t2)         ->  subtype ctx t1 s1 && subtype ctx s2 t2 
-    | TyRecord(fS),TyRecord(fT)         ->  List.for_all ( fun(li,tyTi) -> 
-                                                try let tySi = List.assoc li fS in subtype ctx tySi tyTi
-                                                with Not_found -> false ) fT 
-    | TyRef(tyS'),TyRef(tyT')           ->  subtype ctx tyS' tyT' && subtype ctx tyT' tyS' 
-    | TyRef(tyS'),TySource(tyT')        ->  subtype ctx tyS' tyT'
-    | TySource(tyS'),TySource(tyT')     ->  subtype ctx tyS' tyT'
-    | TyRef(tyS'),TySink(tyT')          ->  subtype ctx tyT' tyS'
-    | TySink(tyS'),TySink(tyT')         ->  subtype ctx tyT' tyS' 
-    | _,_                               ->  false 
+let rec occurcheck x      = function
+    | TyArr(tyT1,tyT2)          -> occurcheck x tyT1 || occurcheck x tyT2
+    | TyId(s)                   -> s=x
+    | tyT                       -> false 
 
 
-(* ------- INFINITE SUBTYPING --------*)
-
-let rec subtype' a tyS tyT     = 
-    if List.mem (tyS,tyT) a 
-        then a
-        else let a0 = (tyS,tyT)::a in match (tyS,tyT) with 
-        | TyRecord(fS),TyRecord(fT)     ->  (match fS,fT with 
-            | _,((li,tyTi)::rT)             ->  let tySi    = List.assoc li fS in 
-                                                let rS      = List.remove_assoc li fS in 
-                                                let a1      = subtype' a0 tySi tyTi in
-                                                subtype' a1 (TyRecord(rS)) (TyRecord(rT)))
-        | TyArr(tyS1,tyS2),TyArr(tyT1,tyT2)
-                                        ->  let a1 = subtype' a0 tyT1 tyS1 in 
-                                            subtype' a1 tyS2 tyT2
-        | _,TyRec(y,tyT1)               ->  subtype' a0 tyS tyT    
-
-(* ---------- JOIN & MEET ---------- *)
-
-let rec join ctx tyS tyT        =
-    pr"JOINING TYPES    : "; pr_ty ctx tyS; pr" & "; pr_ty ctx tyT;pn();
-    if subtype ctx tyS tyT then tyT else
-    if subtype ctx tyT tyS then tyS else 
-    let tyS = simplifyty ctx tyS in 
-    let tyT = simplifyty ctx tyT in 
-    match(tyS,tyT) with 
-    | TyRecord(fS),TyRecord(fT)         ->  let lSs = List.map fst fS in 
-                                            let lTs = List.map fst fT in 
-                                            let commonls = List.find_all (fun l -> List.mem l lTs) lSs in 
-                                            let f li = (li,join ctx(List.assoc li fS)(List.assoc li fT)) in 
-                                            let commonflds = List.map f commonls in 
-                                            TyRecord(commonflds)
-    | TyArr(tyS1,tyS2),TyArr(tyT1,tyT2) ->  (try     TyArr(meet ctx tyS1 tyT1, join ctx tyS2 tyT2) 
-                                            with Not_found  -> TyTop)
-    | TyRef(tyS),TyRef(tyT)             ->  if subtype ctx tyS tyT && subtype ctx tyT tyS 
-                                                then TyRef(tyS)
-                                                else TySource(join ctx tyS tyT) 
-    | TyRef(tyS),TySource(tyT)          ->  TySource(join ctx tyS tyT) 
-    | TySource(tyS),TyRef(tyT)          ->  TySource(join ctx tyS tyT) 
-    | TySource(tyS),TySource(tyT)       ->  TySource(join ctx tyS tyT) 
-    | TyRef(tyS),TySink(tyT)            ->  TySink(meet ctx tyS tyT) 
-    | TySink(tyS),TyRef(tyT)            ->  TySink(meet ctx tyS tyT) 
-    | TySink(tyS),TySink(tyT)           ->  TySink(meet ctx tyS tyT) 
-    
-    | _                                 ->  TyTop
-
-and meet ctx tyS tyT                = 
-    if subtype ctx tyS tyT then tyS else 
-    if subtype ctx tyT tyS then tyT else
-    let tyS = simplifyty ctx tyS in 
-    let tyT = simplifyty ctx tyT in 
-    match(tyS,tyT) with 
-    | TyRecord(fS),TyRecord(fT)         ->  let lSs = List.map fst fS in 
-                                            let lTs = List.map fst fT in 
-                                            let nomem l x = not (List.mem x l) in 
-                                            let allLabels = List.append lSs (List.find_all(nomem lSs)lTs) in
-                                            let f li =  if List.mem li allLabels 
-                                                            then li, meet ctx (List.assoc li fS)(List.assoc li fT) 
-                                                            else if List.mem li lSs 
-                                                                then li, List.assoc li fS
-                                                                else li, List.assoc li fT in 
-                                            let allflds = List.map f allLabels in 
-                                            TyRecord(allflds) 
-    | TyArr(tyS1,tyS2),TyArr(tyT1,tyT2) ->  TyArr(join ctx tyS1 tyT1, meet ctx tyS2 tyT2) 
-    | TyRef(tyS),TyRef(tyT)             ->  if subtype ctx tyS tyT && subtype ctx tyT tyS 
-                                                then TyRef(tyS)
-                                                else TySource(meet ctx tyS tyT) 
-    | TyRef(tyS),TySource(tyT)          ->  TySource(meet ctx tyS tyT) 
-    | TySource(tyS),TyRef(tyT)          ->  TySource(meet ctx tyS tyT) 
-    | TySource(tyS),TySource(tyT)       ->  TySource(meet ctx tyS tyT) 
-    | TyRef(tyS),TySink(tyT)            ->  TySink(join ctx tyS tyT) 
-    | TySink(tyS),TyRef(tyT)            ->  TySink(join ctx tyS tyT) 
-    | TySink(tyS),TySink(tyT)           ->  TySink(join ctx tyS tyT) 
-    | _                                 ->  pr"hoge";raise Not_found  
+let rec unify fi ctx msg l   =  if l = [] then [] else  let c::cs = l in 
+    let p (tyS,tyT) = pr"UNIFY: ";pr_Type false ctx tyS;pr", ";pr_Type false ctx tyT;pn() in match (c::cs) with 
+    | (TyId(x),tyT)::rest       ->  (p c ;if tyT = TyId(x) 
+                                    then unify fi ctx msg rest
+                                    else if occurcheck x tyT 
+                                    then (unify fi ctx msg (substinconstr x tyT rest))@[TyId(x),TyRec(x,tyT)]
+                                    else (unify fi ctx msg (substinconstr x tyT rest))@[TyId(x),tyT] )
+    | (tyS,TyId(x))::rest       ->  (p c ; if tyS = TyId(x) 
+                                    then unify fi ctx msg rest 
+                                    else (if occurcheck x tyS 
+                                    then (unify fi ctx msg (substinconstr x tyS rest))@[TyId(x),TyRec(x,tyS)]
+                                    else (unify fi ctx msg (substinconstr x tyS rest))@[TyId(x),tyS]))
+    | (TyNat,TyNat)::rest       ->  p c ; unify fi ctx msg rest
+    | (TyBool,TyBool)::rest     ->  p c ; unify fi ctx msg rest
+    | (TyArr(tyS1,tyS2),TyArr(tyT1,tyT2))::rest
+                                ->  p c ; unify fi ctx msg ((tyS1,tyT1)::((tyS2,tyT2)::rest))
+    | (tyS,tyT) :: rest         ->  p c ; error fi "Unsolvable constraints"
 
 
 
+let rec recon ctx uvar t = 
+    let p str = pr str;pr": (|Γ|=";pi(ctxlen ctx);pr") ";pr_tm ctx t;pn() in match t with 
+    | TmVar(fi,i,_)             ->  p"CT-VAR        ";
+                                    let tyT = getTypeFromContext fi ctx i in 
+                                    (tyT, uvar, [])
+    | TmAbs(fi,x,None,t)        ->  p"CT-ABS(UNTYPE)";
+                                    let NextUVar(u,uvar') = uvar() in 
+                                    let tyX     = TyId(u) in 
+                                    let ctx'    = addbind ctx x (BindTmVar(tyX)) in 
+                                    let (tyT,uvar'',constr') = recon ctx' uvar' t in 
+                                    (TyArr(tyX,tyT),uvar'',constr')
+    | TmAbs(fi,x,Some(tyX),t)   ->  p"CT-ABS        ";
+                                    let ctx'    = addbind ctx x (BindTmVar(tyX)) in 
+                                    let (tyT,uvar',constr') = recon ctx' uvar t in 
+                                    (TyArr(tyX,tyT),uvar',constr')
+    | TmApp(fi,t1,t2)           ->  p"CT-APP        ";
+                                    let (tyT1,uvar',constr')    = recon ctx uvar t1 in 
+                                    let (tyT2,uvar'',constr'')  = recon ctx uvar' t2 in
+                                    let NextUVar(x,uvar''')   = uvar'' () in 
+                                    TyId(x),uvar''',List.concat[[(tyT1,TyArr(tyT2,TyId(x)))];constr';constr'']
+    | TmZero(fi)                ->  p"CT-ZERO       ";
+                                    TyNat,uvar,[]
+    | TmSucc(fi,t)              ->  p"CT-SUCC       ";
+                                    let tyT,uvar',constr' = recon ctx uvar t in 
+                                    TyNat,uvar',(tyT,TyNat)::constr'
+    | TmPred(fi,t)              ->  p"CT-PRED       ";
+                                    let tyT,uvar',constr' = recon ctx uvar t in 
+                                    TyNat,uvar',(tyT,TyNat)::constr'
+    | TmIsZero(fi,t)            ->  p"CT-ISZERO     ";
+                                    let tyT,uvar',constr' = recon ctx uvar t in 
+                                    TyBool,uvar',(tyT,TyNat)::constr'
+    | TmTrue(fi)                ->  p"CT-TRUE       ";
+                                    TyBool,uvar,[]
+    | TmFalse(fi)               ->  p"CT-FALSE      ";
+                                    TyBool,uvar,[]
+    | TmIf(fi,t1,t2,t3)         ->  p"CT-IF         ";
+                                    let tyT1,uvar1,constr1 = recon ctx uvar t1 in 
+                                    let tyT2,uvar2,constr2 = recon ctx uvar1 t2 in 
+                                    let tyT3,uvar3,constr3 = recon ctx uvar2 t3 in 
+                                    tyT3,uvar3,List.concat[[tyT1,TyBool;tyT2,tyT3];constr1;constr2;constr3]
+    | TmUnit(fi)                ->  p"CT-UNIT       ";     
+                                    TyUnit,uvar,[]
+    | TmLet(fi,x,t1,t2)         ->  p"CT-LETPOLY-ALG";
+                                    let tyT1,uvar',constr'  = recon ctx uvar t1 in 
+                                    let sol_t1              = unify fi ctx "letpoly alg faild:" constr' in 
+                                    let generalised_T1      = apply_constr sol_t1 tyT1 in 
+                                    let NextUVar(y,uvar'')  = uvar'() in 
+                                    let ctx' = addbind ctx y (BindTmVar(generalised_T1)) in 
+                                    let n = ctxlen ctx in 
+                                    let tyT2,uvar''',constr'' = recon ctx' uvar'' t2 in 
+                                    tyT2,uvar''',constr''
+    | TmLet(fi,x,t1,t2)         ->  p"CT-LETPOLY    ";
+                                    let tyT2,uvar',constr' = recon ctx uvar (tmSubstTop t1 t2) in 
+                                    tyT2,uvar', constr'
+    | TmLet(fi,x,t1,t2)         ->  p"CT-LET        ";
+                                    if not (isval ctx t1) then 
+                                        let tyT1,uvar',constr' = recon ctx uvar t1 in 
+                                        let ctx' = addbind ctx x (BindTmVar(tyT1)) in
+                                        let tyT2,uvar'',constr'' = recon ctx' uvar' t2 in 
+                                        tyT2, uvar'', constr'@constr''
+                                    else 
+                                        recon ctx uvar (tmSubstTop t1 t2)
+let recon' sol ctx uvar t = ()
 
 
 (* ----------- TYPING --------------- *) 
@@ -203,7 +170,7 @@ let rec typeof ctx   t      = let p str = pr str;pr": (∣Γ∣=";pi(ctxlen ctx)
     | TmString(fi,_)            ->  p"T-STRING      "; TyString
     | TmVar(fi,i,_)             ->  p"T-VAR         "; getTypeFromContext fi ctx i  
     | TmLet(fi,x,t1,t2)         ->  p"T-LET         "; tyShift(-1)(typeof(addbind ctx x(BindTmVar(typeof ctx t1)))t2)
-    | TmAbs(fi,x,tyT1,t2)       ->  p"T-ABS         ";
+    | TmAbs(fi,x,Some(tyT1),t2) ->  p"T-ABS         ";
             let ctx'    = addbind ctx x (BindTmVar(tyT1)) in    (*       Γ,x:T1 ∣- t2 : T2          *)  
             let tyT2    = typeof ctx' t2 in                     (*     --------------------- T-Abs  *)
             TyArr(tyT1,tyShift(-1)tyT2)                         (*     Γ ∣- λx:T1.t2 : T1→T2        *)
@@ -246,4 +213,3 @@ let prbindty ctx = function
     | BindTyAbb(tyT)            -> pr"= "; pr_ty ctx tyT
     | BindTmAbb(t,Some(tyT))    -> pr"= "; pr_tm ctx t
     | BindTmAbb(t,None)         -> pr"= "; pr_tm ctx t 
-

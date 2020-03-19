@@ -123,27 +123,27 @@ let pe = print_endline
 /* The returned type of a toplevel is Syntax.command list. */
 %start toplevel
 %start input 
-%type <Syntax.context -> Eval.store -> (Syntax.command list * Syntax.context * Eval.store)> input 
+%type <Syntax.context -> Eval.store -> Syntax.uvargenerator -> Syntax.constr -> (Syntax.command list * Syntax.context * Eval.store * Syntax.uvargenerator * Syntax.constr)> input 
 %type <Syntax.context -> (Syntax.command list * Syntax.context)> toplevel
 
 %%
 /************   REPL   ***************************************************************************/
 
 input :   /* Left Recursion */
-    |                                   { fun _ _   ->  [],emptyctx,emptystore                      }
-    | input LOAD                        { let file   = $2.v in 
-                                          fun ctx s ->  [],ctx,s                                    }
-    | input SHOWCONTEXT DOUBLESEMI      { let _,ctx',s' = $1 [] emptystore in pr_ctx ctx';
-                                          fun _ _  ->  [],ctx',s'                                   }  
-    | input DOUBLESEMI                  { fun ctx s ->  [],ctx,s                                    } 
-    | input oneREPL                     { let _,ev_ctx,s    = $1 [] emptystore in   
-                                          let cmds,_      = $2 ev_ctx in 
-                                          let ev_ctx',s'   = process_commands ev_ctx s cmds in 
-                                          fun _ _  -> [],ev_ctx',s'                                 } 
+    |                                   { fun _ _ _ _ ->  [],emptyctx,emptystore,uvargen,[]                    }
+    | input LOAD                        { let file          = $2.v in 
+                                          fun ctx s u c ->  [],ctx,s,u,c                                   }
+    | input SHOWCONTEXT DOUBLESEMI      { let _,ctx',s',u',c' = $1 [] emptystore (uvargen) [] in pr_ctx ctx';
+                                          fun _ _ _ _  ->  [],ctx',s',u',c'                                  }  
+    | input DOUBLESEMI                  { fun ctx s u c->  [],ctx,s,u,c                                    } 
+    | input oneREPL                     { let _,ev_ctx,s,u,c    = $1 [] emptystore (uvargen) [] in   
+                                          let cmds,_            = $2 ev_ctx in 
+                                          let ev_ctx',s',u',c'  = process_commands ev_ctx s u c cmds  in 
+                                          fun _ _ _ _  -> [],ev_ctx',s',u',c'                               } 
 oneREPL : 
-    | Command DOUBLESEMI                { fun ctx ->  let cmd,ctx'    = $1 ctx in [cmd],ctx'        } 
-    | Command SEMI oneREPL              { fun ctx ->  let cmd,ctx'    = $1 ctx in 
-                                                      let cmds,ctx''  = $3 ctx' in cmd::cmds,ctx''  }
+    | Command DOUBLESEMI                { fun ctx   ->  let cmd,ctx'    = $1 ctx in [cmd],ctx'      } 
+    | Command SEMI oneREPL              { fun ctx   ->  let cmd,ctx'    = $1 ctx in 
+                                                        let cmds,ctx''  = $3 ctx' in cmd::cmds,ctx''}
 
 
 /************  COMPILER  *************************************************************************/
@@ -201,76 +201,77 @@ NETyFields  :
     | TyField COMMA NETyFields          { fun ctx   ->  fun i -> ($1 ctx i)::($3 ctx (i+1))         }
 TyField     : 
     | LCID COLON Type                   { fun ctx   ->  fun i -> ($1.v, $3 ctx)                     }
-    | Type                              { fun ctx   ->  fun i -> (string_of_int i, $1 ctx)          } 
+    | Type                              { fun ctx   ->  fun i -> (string_of_int i, $1 ctx)          }
 /************    TERM    *************************************************************************/
 TermWrap    :
-    | TermWrap COMMA LCID EQ Term       { fun ctx   ->  TmLet($2,$3.v,$5 ctx,$1(addname ctx $3.v))  }
-    | Term     WHERE LCID EQ Term       { fun ctx   ->  TmLet($2,$3.v,$5 ctx,$1(addname ctx $3.v))  }
-    | Term                              { $1                                                        } 
+    | TermWrap COMMA LCID EQ Term       { fun ctx   ->  TmLet($2,$3.v,$5 ctx,$1(addname ctx $3.v))      }
+    | Term     WHERE LCID EQ Term       { fun ctx   ->  TmLet($2,$3.v,$5 ctx,$1(addname ctx $3.v))      }
+    | Term                              { $1                                                            } 
 Cases       :
-    | Case                              { fun ctx   ->  [$1 ctx]                                    }
-    | Case VBAR Cases                   { fun ctx   ->  ($1 ctx)::($3 ctx)                          }
+    | Case                              { fun ctx   ->  [$1 ctx]                                        }
+    | Case VBAR Cases                   { fun ctx   ->  ($1 ctx)::($3 ctx)                              }
 Case        :
-    | LT LCID EQ LCID GT DARROW AppTerm { fun ctx   ->  ($2.v,($4.v,$7(addname ctx $4.v)))          } 
+    | LT LCID EQ LCID GT DARROW AppTerm { fun ctx   ->  ($2.v,($4.v,$7(addname ctx $4.v)))              }
 Term        :
-    | AppTerm                           { $1                                                        }
-    | LAMBDA LCID   COLON Type DOT Term { fun ctx   ->  TmAbs($1,$2.v,$4 ctx,$6 (addname ctx $2.v)) }
-    | LAMBDA USCORE COLON Type DOT Term { fun ctx   ->  TmAbs($1,"_", $4 ctx,$6 (addname ctx "_" )) }
-    | IF Term THEN Term ELSE Term       { fun ctx   ->  TmIf($1,$2 ctx,$4 ctx,$6 ctx)               }
-    | LET LCID   EQ Term IN Term        { fun ctx   ->  TmLet($1,$2.v,$4 ctx,$6 (addname ctx $2.v)) }
-    | LET USCORE EQ Term IN Term        { fun ctx   ->  TmLet($1,"_", $4 ctx,$6 (addname ctx "_" )) }
+    | AppTerm                           { $1                                                            }
+    | LAMBDA LCID DOT Term              { fun ctx   ->  TmAbs($1,$2.v,None,$4(addname ctx $2.v))        } 
+    | LAMBDA LCID   COLON Type DOT Term { fun ctx   ->  TmAbs($1,$2.v,Some($4 ctx),$6(addname ctx $2.v))}
+    | LAMBDA USCORE COLON Type DOT Term { fun ctx   ->  TmAbs($1,"_",Some($4 ctx),$6(addname ctx "_" )) }
+    | IF Term THEN Term ELSE Term       { fun ctx   ->  TmIf($1,$2 ctx,$4 ctx,$6 ctx)                   }
+    | LET LCID   EQ Term IN Term        { fun ctx   ->  TmLet($1,$2.v,$4 ctx,$6 (addname ctx $2.v))     }
+    | LET USCORE EQ Term IN Term        { fun ctx   ->  TmLet($1,"_", $4 ctx,$6 (addname ctx "_" ))     }
     | LETREC LCID COLON Type EQ Term IN Term
                                         { fun ctx   ->  let ctx' = addname ctx $2.v in 
-                                                        TmLet($1,$2.v,TmFix($1,TmAbs($1,$2.v,$4 ctx,$6 ctx')),$8 ctx')}
-    | CASE Term OF Cases                { fun ctx   ->  TmCase($1,$2 ctx,$4 ctx)                    }
-    | AppTerm COLONEQ AppTerm           { fun ctx   ->  TmAssign($2,$1 ctx,$3 ctx)                  } 
-    | CONS LType ATerm ATerm            { fun ctx   ->  TmCons($1,$2 ctx,$3 ctx,$4 ctx)             } 
-    | HEAD LType ATerm                  { fun ctx   ->  TmHead($1,$2 ctx,$3 ctx)                    } 
-    | TAIL LType ATerm                  { fun ctx   ->  TmTail($1,$2 ctx,$3 ctx)                    } 
-    | ISNIL LType ATerm                 { fun ctx   ->  TmIsNil($1,$2 ctx,$3 ctx)                   } 
+                                          TmLet($1,$2.v,TmFix($1,TmAbs($1,$2.v,Some($4 ctx),$6 ctx')),$8 ctx')}
+    | CASE Term OF Cases                { fun ctx   ->  TmCase($1,$2 ctx,$4 ctx)                        }
+    | AppTerm COLONEQ AppTerm           { fun ctx   ->  TmAssign($2,$1 ctx,$3 ctx)                      } 
+    | CONS LType ATerm ATerm            { fun ctx   ->  TmCons($1,$2 ctx,$3 ctx,$4 ctx)                 } 
+    | HEAD LType ATerm                  { fun ctx   ->  TmHead($1,$2 ctx,$3 ctx)                        } 
+    | TAIL LType ATerm                  { fun ctx   ->  TmTail($1,$2 ctx,$3 ctx)                        } 
+    | ISNIL LType ATerm                 { fun ctx   ->  TmIsNil($1,$2 ctx,$3 ctx)                       } 
 AppTerm     :
-    | PathTerm                          { $1                                                        }
-    | AppTerm PathTerm                  { fun ctx   ->  let t=$1 ctx in TmApp(tmInfo t,t,$2 ctx)    }
-    | PathTerm TIMESFLOAT PathTerm      { fun ctx   ->  TmTimesfloat($2,$1 ctx,$3 ctx)              } 
-    | FOLD   LSQUARE Type RSQUARE       { fun ctx   ->  TmFold($1,   $3 ctx)                        } 
-    | UNFOLD LSQUARE Type RSQUARE       { fun ctx   ->  TmUnfold($1, $3 ctx)                        } 
-    | FIX     PathTerm                  { fun ctx   ->  TmFix($1, $2 ctx )                          }
-    | REF     PathTerm                  { fun ctx   ->  TmRef($1, $2 ctx )                          } 
-    | BANG    PathTerm                  { fun ctx   ->  TmDeref($1, $2 ctx )                        } 
-    | SUCC    PathTerm                  { fun ctx   ->  TmSucc($1, $2 ctx )                         }
-    | PRED    PathTerm                  { fun ctx   ->  TmPred($1, $2 ctx )                         }
-    | ISZERO  PathTerm                  { fun ctx   ->  TmIsZero($1, $2 ctx)                        }
+    | PathTerm                          { $1                                                            }
+    | AppTerm PathTerm                  { fun ctx   ->  let t=$1 ctx in TmApp(tmInfo t,t,$2 ctx)        }
+    | PathTerm TIMESFLOAT PathTerm      { fun ctx   ->  TmTimesfloat($2,$1 ctx,$3 ctx)                  } 
+    | FOLD   LSQUARE Type RSQUARE       { fun ctx   ->  TmFold($1,   $3 ctx)                            } 
+    | UNFOLD LSQUARE Type RSQUARE       { fun ctx   ->  TmUnfold($1, $3 ctx)                            } 
+    | FIX     PathTerm                  { fun ctx   ->  TmFix($1, $2 ctx )                              }
+    | REF     PathTerm                  { fun ctx   ->  TmRef($1, $2 ctx )                              } 
+    | BANG    PathTerm                  { fun ctx   ->  TmDeref($1, $2 ctx )                            } 
+    | SUCC    PathTerm                  { fun ctx   ->  TmSucc($1, $2 ctx )                             }
+    | PRED    PathTerm                  { fun ctx   ->  TmPred($1, $2 ctx )                             }
+    | ISZERO  PathTerm                  { fun ctx   ->  TmIsZero($1, $2 ctx)                            }
 PathTerm    : 
-    | PathTerm DOT LCID                 { fun ctx   ->  TmProj($2, $1 ctx, $3.v)                    }
-    | PathTerm DOT INTV                 { fun ctx   ->  TmProj($2, $1 ctx, soi $3.v)                }
-    | AscribeTerm                       { $1                                                        }
+    | PathTerm DOT LCID                 { fun ctx   ->  TmProj($2, $1 ctx, $3.v)                        }
+    | PathTerm DOT INTV                 { fun ctx   ->  TmProj($2, $1 ctx, soi $3.v)                    }
+    | AscribeTerm                       { $1                                                            }
 AscribeTerm : 
-    | ATerm AS Type                     { fun ctx   ->  TmAscribe($2,$1 ctx,$3 ctx)                 }
-    | ATerm                             { $1                                                        }
+    | ATerm AS Type                     { fun ctx   ->  TmAscribe($2,$1 ctx,$3 ctx)                     }
+    | ATerm                             { $1                                                            }
 ATerm       :                               /* Atomic terms never require extra parentheses */
-    | LPAREN TermSeq RPAREN             { $2                                                        }
-    | LCURLY Fields RCURLY              { fun ctx   ->  TmRecord($1,$2 ctx 1)                       }
-    | LT LCID EQ Term GT AS Type        { fun ctx   ->  TmTag($1,$2.v,$4 ctx,$7 ctx)                }
+    | LPAREN TermSeq RPAREN             { $2                                                            }
+    | LCURLY Fields RCURLY              { fun ctx   ->  TmRecord($1,$2 ctx 1)                           }
+    | LT LCID EQ Term GT AS Type        { fun ctx   ->  TmTag($1,$2.v,$4 ctx,$7 ctx)                    }
     | LCID                              { fun ctx   ->  TmVar($1.i,name2index $1.i ctx $1.v,ctxlen ctx) } 
-    | STRINGV                           { fun ctx   ->  TmString($1.i,$1.v)                         }
-    | FLOATV                            { fun ctx   ->  TmFloat($1.i,$1.v)                          }
-    | UNIT                              { fun ctx   ->  TmUnit($1)                                  }
-    | TRUE                              { fun ctx   ->  TmTrue($1)                                  }
-    | FALSE                             { fun ctx   ->  TmFalse($1)                                 }
+    | STRINGV                           { fun ctx   ->  TmString($1.i,$1.v)                             }
+    | FLOATV                            { fun ctx   ->  TmFloat($1.i,$1.v)                              }
+    | UNIT                              { fun ctx   ->  TmUnit($1)                                      }
+    | TRUE                              { fun ctx   ->  TmTrue($1)                                      }
+    | FALSE                             { fun ctx   ->  TmFalse($1)                                     }
     | INTV                              { fun ctx   ->  let rec f = function
                                                             | 0 -> TmZero($1.i)
-                                                            | n -> TmSucc($1.i,f(n-1))in f $1.v     }
-    | NIL LType                         { fun ctx   ->  TmNil($1,$2 ctx)                            } 
+                                                            | n -> TmSucc($1.i,f(n-1))in f $1.v         }
+    | NIL LType                         { fun ctx   ->  TmNil($1,$2 ctx)                                } 
 TermSeq     : 
-    | Term                              { $1                                                        }
-    | Term SEMI TermSeq                 { fun ctx   ->  TmApp($2,TmAbs($2,"_",TyUnit,$3(addname ctx"_")),$1 ctx) } 
+    | Term                              { $1                                                            }
+    | Term SEMI TermSeq                 { fun ctx   ->  TmApp($2,TmAbs($2,"_",Some(TyUnit),$3(addname ctx"_")),$1 ctx)}
 
 Fields      : 
-    | /* empty */                       { fun ctx   ->  fun i -> []                                 }
-    | NEFields                          { $1                                                        }
+    | /* empty */                       { fun ctx   ->  fun i -> []                                     }
+    | NEFields                          { $1                                                            }
 NEFields    : 
-    | Field                             { fun ctx   -> fun i -> [ $1 ctx i ]                        }
-    | Field COMMA NEFields              { fun ctx   -> fun i -> ($1 ctx i)::($3 ctx(i+1))           }
+    | Field                             { fun ctx   -> fun i -> [ $1 ctx i ]                            }
+    | Field COMMA NEFields              { fun ctx   -> fun i -> ($1 ctx i)::($3 ctx(i+1))               }
 Field       : 
-    | LCID EQ Term                      { fun ctx   -> fun i -> ($1.v, $3 ctx)                      }
-    | Term                              { fun ctx   -> fun i -> (string_of_int i, $1 ctx)           }
+    | LCID EQ Term                      { fun ctx   -> fun i -> ($1.v, $3 ctx)                          }
+    | Term                              { fun ctx   -> fun i -> (string_of_int i, $1 ctx)               }

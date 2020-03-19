@@ -60,7 +60,7 @@ type term =
     | TmLet         of info * string * term * term
     (* Lambda *) 
     | TmVar         of info * int * int 
-    | TmAbs         of info * string * ty * term 
+    | TmAbs         of info * string * ty option * term 
     | TmApp         of info * term * term 
     (* Arith *) 
     | TmZero        of info
@@ -90,6 +90,21 @@ type command =
     | Eval of info * term
     | Bind of info * string * bind 
 ;;
+
+(* -------------------------------------------------- *) 
+(* Type Reconstruction *)
+
+type constr             = (ty * ty) list 
+type nextuvar           = NextUVar of string * uvargenerator
+and  uvargenerator      = unit -> nextuvar 
+
+let emptyconstr         = []
+let combineconstr       = List.append
+
+
+let uvargen             = 
+    let rec f n ()          = NextUVar("?X" ^ string_of_int n, f(n+1))
+    in f 0 ;;
 
 (* -------------------------------------------------- *) 
 (* Context Management *) 
@@ -133,7 +148,8 @@ let rec tmWalk onVar onType c   = let (f,g) = (onVar,onType) in function
     | TmCase(fi,t,cases)        -> TmCase(fi,tmWalk f g c t,List.map(fun(li,(xi,ti))->li,(xi,tmWalk f g(c+1)ti))cases)
     | TmTag(fi,l,t,tyT)         -> TmTag(fi,l,tmWalk f g c t,g c tyT)
     | TmLet(fi,x,t1,t2)         -> TmLet(fi,x,tmWalk f g c t1, tmWalk f g(c+1)t2) 
-    | TmAbs(fi,x,tyT,t2)        -> TmAbs(fi,x,g c tyT,tmWalk f g(c+1)t2)
+    | TmAbs(fi,x,Some(tyT),t2)  -> TmAbs(fi,x,Some(g c tyT),tmWalk f g(c+1)t2)
+    | TmAbs(fi,x,None,t2)       -> TmAbs(fi,x,None,tmWalk f g(c+1)t2)
     | TmApp(fi,t1,t2)           -> TmApp(fi,tmWalk f g c t1, tmWalk f g c t2) 
     | TmIf(fi,t1,t2,t3)         -> TmIf(fi,tmWalk f g c t1, tmWalk f g c t2, tmWalk f g c t3) 
     | TmSucc(fi,t)              -> TmSucc(fi,tmWalk f g c t) 
@@ -291,7 +307,7 @@ and pr_AType outer ctx      = function
     | TyNat                     ->  pr "𝐍"
     | TyUnit                    ->  pr "𝐔"
     | TyId(s)                   ->  pr s
-    | TyVar(i,n)                ->  if ctxlen ctx = n then pr(index2name dummyinfo ctx i)else pr"[BadIndex]"  
+    | TyVar(i,n)                ->  if true (* ctxlen ctx = n *)then pr(index2name dummyinfo ctx i)else pr"[BadIndex]"  
     | TyVariant(flds)           ->  pr"<"; oobox0(); pr_fldtys pr_Type outer ctx 1 flds; pr">"; cbox()
     | TyRecord(flds)            ->  pr"{"; oobox0(); pr_fldtys pr_Type outer ctx 1 flds; pr"}"; cbox()
     | tyT                       ->  pr"("; pr_Type outer ctx tyT; pr ")"
@@ -311,8 +327,10 @@ let rec pr_cases prTm outer ctx =
 (* -------------------------------------------------- *) 
 (* Term Print *)
 let rec pr_Term outer ctx  = function 
-    | TmAbs(_,x,tyT1,t2)        ->  let (ctx',x')=pickfreshname ctx x in obox();
-        pr"λ";pr x';pr":";pr_Type false ctx tyT1;pr".";psbr((not(small t2))||outer);pr_Term outer ctx' t2;  cbox()
+    | TmAbs(_,x,None,t)         ->  let (ctx',x')=pickfreshname ctx x in obox();
+        pr"λ";pr x';pr".";psbr((not(small t))||outer);pr_Term outer ctx' t;  cbox()
+    | TmAbs(_,x,Some(tyX),t)    ->  let (ctx',x')=pickfreshname ctx x in obox();
+        pr"λ";pr x';pr":";pr_Type false ctx tyX;pr".";psbr((not(small t))||outer);pr_Term outer ctx' t;  cbox()
     | TmIf(_, t1, t2, t3)       ->  obox0();
         pr"if "  ;pr_Term false ctx t1;ps();
         pr"then ";pr_Term false ctx t2;ps();
@@ -383,3 +401,12 @@ let pr_ctx ctx =
         | ((str,bind)::rest)  -> pr" ( ";pr str;pr", ";pr_bind bind;pr" )";pn();f rest in 
     f ctx ; 
     pe "xxxxxxxxxxxxxxxxxxxxxxxxxxxxx"; pn()
+
+let pr_constr ctx constr = 
+    let pc (tyS,tyT)        = pr_Type false ctx tyS; pr"="; pr_Type false ctx tyT in 
+    let rec f               = function 
+        | []                    -> ()
+        | [c]                   -> (pc c)
+        | c::rest               -> (pc c; pr", "; f rest) in
+    pr"{"; f constr; pr"}";;
+

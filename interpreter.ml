@@ -14,7 +14,7 @@ let compiler    lexbuf  =   Parser.toplevel   Lexer.token lexbuf
                                  
 let parse'' machine in_channel =   (* machine -> in_channel -> command list *) 
     let lexbuf              =   Lexing.from_channel in_channel  in
-    let cmds,ctx,store      =   try     machine lexbuf emptyctx emptystore  
+    let cmds,ctx,store,uvar,constr      =   try     machine lexbuf emptyctx emptystore uvargen [] 
                                 with  | Parsing.Parse_error -> error (Lexer.info lexbuf) "Parse error" 
                                       | e -> raise e   in
     Parsing.clear_parser(); close_in in_channel; cmds 
@@ -52,8 +52,8 @@ let parseFile f         =  (* string -> command list *)
     let in_channel          =   openFile f in 
     parse' compiler in_channel 
 
-let process_file str ctx store  =  (* string -> unit *)  (* print the evals of the list of commands *)  
+let process_file str ctx store nextuvar constr =  (* string -> unit *)  (* print the evals of the list of commands *)  
     let cmds                =   parseFile str in
-    process_commands ctx store cmds  
+    process_commands ctx store nextuvar constr cmds 
 
 
