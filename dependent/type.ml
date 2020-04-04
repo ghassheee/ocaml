@@ -20,7 +20,7 @@ let rec tyeqv ctx tyT tyS = match (tyS,tyT) with
     | Bool(_),Bool(_)                   -> true
     | Nat(_),Nat(_)                     -> true 
     | If(_,a,b,c),If(_,x,y,z)           -> tyeqv ctx a x && tyeqv ctx b y && tyeqv ctx c z 
-    | Ap(_,Ap(_,Pi(_),t),Lam(_,_,_,b)),Ap(_,Ap(_,Pi(_),c),Lam(_,_,_,d)) 
+    | Ap(_,Ap(_,Pi(_),a),Lam(_,_,_,b)),Ap(_,Ap(_,Pi(_),c),Lam(_,_,_,d)) 
                                         -> tyeqv ctx a c && tyeqv ctx b d  
     | Var(_,i,_),Var(_,j,_)             -> i = j
     | tyA,tyB                           -> (=) tyA tyB 
