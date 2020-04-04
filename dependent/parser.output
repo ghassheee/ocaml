@@ -1,0 +1,1074 @@
+   0  $accept : %entry% $end
+
+   1  input :
+   2        | input SHOWCONTEXT DOUBLESEMI
+   3        | input DOUBLESEMI
+   4        | input oneREPL
+
+   5  oneREPL : Command DOUBLESEMI
+   6          | Command SEMI oneREPL
+
+   7  toplevel : EOF
+   8           | Command SEMI toplevel
+
+   9  Command : TermWrap
+  10          | UCID TyBinder
+  11          | LCID Binder
+
+  12  TyBinder :
+  13           | EQ Type
+
+  14  Binder : COLON Type
+  15         | EQ Term
+
+  16  Type : LCID
+  17       | UNIV
+  18       | BOOL
+  19       | NAT
+  20       | Type ARROW Type
+  21       | PI Type Term
+  22       | SIGMA Type Term
+  23       | LPAREN Type RPAREN
+
+  24  TermWrap : Term
+
+  25  Term : ApTerm
+  26       | LAMBDA LCID COLON Type DOT Term
+  27       | IF Term THEN Term ELSE Term
+
+  28  ApTerm : ATerm
+  29         | ApTerm ATerm
+  30         | PI Type Term
+  31         | SIGMA Type Term
+  32         | SUCC ATerm
+  33         | PRED ATerm
+  34         | ISZERO ATerm
+
+  35  ATerm : LPAREN TermSeq RPAREN
+  36        | LCID
+  37        | UNIV
+  38        | BOOL
+  39        | NAT
+  40        | TRUE
+  41        | FALSE
+  42        | INTV
+
+  43  TermSeq : Term
+
+  44  %entry% : '\001' toplevel
+  45          | '\002' input
+
+state 0
+	$accept : . %entry% $end  (0)
+
+	'\001'  shift 1
+	'\002'  shift 2
+	.  error
+
+	%entry%  goto 3
+
+
+state 1
+	%entry% : '\001' . toplevel  (44)
+
+	UNIV  shift 4
+	PI  shift 5
+	SIGMA  shift 6
+	BOOL  shift 7
+	NAT  shift 8
+	SUCC  shift 9
+	PRED  shift 10
+	ISZERO  shift 11
+	LAMBDA  shift 12
+	IF  shift 13
+	TRUE  shift 14
+	FALSE  shift 15
+	UCID  shift 16
+	LCID  shift 17
+	INTV  shift 18
+	EOF  shift 19
+	LPAREN  shift 20
+	.  error
+
+	toplevel  goto 21
+	Command  goto 22
+	TermWrap  goto 23
+	Term  goto 24
+	ApTerm  goto 25
+	ATerm  goto 26
+
+
+state 2
+	%entry% : '\002' . input  (45)
+	input : .  (1)
+
+	.  reduce 1
+
+	input  goto 27
+
+
+state 3
+	$accept : %entry% . $end  (0)
+
+	$end  accept
+
+
+state 4
+	ATerm : UNIV .  (37)
+
+	.  reduce 37
+
+
+state 5
+	ApTerm : PI . Type Term  (30)
+
+	UNIV  shift 28
+	PI  shift 29
+	SIGMA  shift 30
+	BOOL  shift 31
+	NAT  shift 32
+	LCID  shift 33
+	LPAREN  shift 34
+	.  error
+
+	Type  goto 35
+
+
+state 6
+	ApTerm : SIGMA . Type Term  (31)
+
+	UNIV  shift 28
+	PI  shift 29
+	SIGMA  shift 30
+	BOOL  shift 31
+	NAT  shift 32
+	LCID  shift 33
+	LPAREN  shift 34
+	.  error
+
+	Type  goto 36
+
+
+state 7
+	ATerm : BOOL .  (38)
+
+	.  reduce 38
+
+
+state 8
+	ATerm : NAT .  (39)
+
+	.  reduce 39
+
+
+state 9
+	ApTerm : SUCC . ATerm  (32)
+
+	UNIV  shift 4
+	BOOL  shift 7
+	NAT  shift 8
+	TRUE  shift 14
+	FALSE  shift 15
+	LCID  shift 37
+	INTV  shift 18
+	LPAREN  shift 20
+	.  error
+
+	ATerm  goto 38
+
+
+state 10
+	ApTerm : PRED . ATerm  (33)
+
+	UNIV  shift 4
+	BOOL  shift 7
+	NAT  shift 8
+	TRUE  shift 14
+	FALSE  shift 15
+	LCID  shift 37
+	INTV  shift 18
+	LPAREN  shift 20
+	.  error
+
+	ATerm  goto 39
+
+
+state 11
+	ApTerm : ISZERO . ATerm  (34)
+
+	UNIV  shift 4
+	BOOL  shift 7
+	NAT  shift 8
+	TRUE  shift 14
+	FALSE  shift 15
+	LCID  shift 37
+	INTV  shift 18
+	LPAREN  shift 20
+	.  error
+
+	ATerm  goto 40
+
+
+state 12
+	Term : LAMBDA . LCID COLON Type DOT Term  (26)
+
+	LCID  shift 41
+	.  error
+
+
+state 13
+	Term : IF . Term THEN Term ELSE Term  (27)
+
+	UNIV  shift 4
+	PI  shift 5
+	SIGMA  shift 6
+	BOOL  shift 7
+	NAT  shift 8
+	SUCC  shift 9
+	PRED  shift 10
+	ISZERO  shift 11
+	LAMBDA  shift 12
+	IF  shift 13
+	TRUE  shift 14
+	FALSE  shift 15
+	LCID  shift 37
+	INTV  shift 18
+	LPAREN  shift 20
+	.  error
+
+	Term  goto 42
+	ApTerm  goto 25
+	ATerm  goto 26
+
+
+state 14
+	ATerm : TRUE .  (40)
+
+	.  reduce 40
+
+
+state 15
+	ATerm : FALSE .  (41)
+
+	.  reduce 41
+
+
+state 16
+	Command : UCID . TyBinder  (10)
+	TyBinder : .  (12)
+
+	EQ  shift 43
+	SEMI  reduce 12
+	DOUBLESEMI  reduce 12
+
+	TyBinder  goto 44
+
+
+state 17
+	Command : LCID . Binder  (11)
+	ATerm : LCID .  (36)
+
+	COLON  shift 45
+	EQ  shift 46
+	UNIV  reduce 36
+	BOOL  reduce 36
+	NAT  reduce 36
+	TRUE  reduce 36
+	FALSE  reduce 36
+	LCID  reduce 36
+	INTV  reduce 36
+	LPAREN  reduce 36
+	SEMI  reduce 36
+	DOUBLESEMI  reduce 36
+
+	Binder  goto 47
+
+
+state 18
+	ATerm : INTV .  (42)
+
+	.  reduce 42
+
+
+state 19
+	toplevel : EOF .  (7)
+
+	.  reduce 7
+
+
+state 20
+	ATerm : LPAREN . TermSeq RPAREN  (35)
+
+	UNIV  shift 4
+	PI  shift 5
+	SIGMA  shift 6
+	BOOL  shift 7
+	NAT  shift 8
+	SUCC  shift 9
+	PRED  shift 10
+	ISZERO  shift 11
+	LAMBDA  shift 12
+	IF  shift 13
+	TRUE  shift 14
+	FALSE  shift 15
+	LCID  shift 37
+	INTV  shift 18
+	LPAREN  shift 20
+	.  error
+
+	Term  goto 48
+	ApTerm  goto 25
+	ATerm  goto 26
+	TermSeq  goto 49
+
+
+state 21
+	%entry% : '\001' toplevel .  (44)
+
+	.  reduce 44
+
+
+state 22
+	toplevel : Command . SEMI toplevel  (8)
+
+	SEMI  shift 50
+	.  error
+
+
+state 23
+	Command : TermWrap .  (9)
+
+	.  reduce 9
+
+
+state 24
+	TermWrap : Term .  (24)
+
+	.  reduce 24
+
+
+25: shift/reduce conflict (shift 4, reduce 25) on UNIV
+25: shift/reduce conflict (shift 7, reduce 25) on BOOL
+25: shift/reduce conflict (shift 8, reduce 25) on NAT
+25: shift/reduce conflict (shift 14, reduce 25) on TRUE
+25: shift/reduce conflict (shift 15, reduce 25) on FALSE
+25: shift/reduce conflict (shift 37, reduce 25) on LCID
+25: shift/reduce conflict (shift 18, reduce 25) on INTV
+25: shift/reduce conflict (shift 20, reduce 25) on LPAREN
+state 25
+	Term : ApTerm .  (25)
+	ApTerm : ApTerm . ATerm  (29)
+
+	UNIV  shift 4
+	BOOL  shift 7
+	NAT  shift 8
+	TRUE  shift 14
+	FALSE  shift 15
+	LCID  shift 37
+	INTV  shift 18
+	LPAREN  shift 20
+	PI  reduce 25
+	SIGMA  reduce 25
+	SUCC  reduce 25
+	PRED  reduce 25
+	ISZERO  reduce 25
+	LAMBDA  reduce 25
+	IF  reduce 25
+	THEN  reduce 25
+	ELSE  reduce 25
+	ARROW  reduce 25
+	DOT  reduce 25
+	RPAREN  reduce 25
+	SEMI  reduce 25
+	DOUBLESEMI  reduce 25
+
+	ATerm  goto 51
+
+
+state 26
+	ApTerm : ATerm .  (28)
+
+	.  reduce 28
+
+
+state 27
+	input : input . SHOWCONTEXT DOUBLESEMI  (2)
+	input : input . DOUBLESEMI  (3)
+	input : input . oneREPL  (4)
+	%entry% : '\002' input .  (45)
+
+	SHOWCONTEXT  shift 52
+	UNIV  shift 4
+	PI  shift 5
+	SIGMA  shift 6
+	BOOL  shift 7
+	NAT  shift 8
+	SUCC  shift 9
+	PRED  shift 10
+	ISZERO  shift 11
+	LAMBDA  shift 12
+	IF  shift 13
+	TRUE  shift 14
+	FALSE  shift 15
+	UCID  shift 16
+	LCID  shift 17
+	INTV  shift 18
+	LPAREN  shift 20
+	DOUBLESEMI  shift 53
+	$end  reduce 45
+
+	oneREPL  goto 54
+	Command  goto 55
+	TermWrap  goto 23
+	Term  goto 24
+	ApTerm  goto 25
+	ATerm  goto 26
+
+
+state 28
+	Type : UNIV .  (17)
+
+	.  reduce 17
+
+
+state 29
+	Type : PI . Type Term  (21)
+
+	UNIV  shift 28
+	PI  shift 29
+	SIGMA  shift 30
+	BOOL  shift 31
+	NAT  shift 32
+	LCID  shift 33
+	LPAREN  shift 34
+	.  error
+
+	Type  goto 56
+
+
+state 30
+	Type : SIGMA . Type Term  (22)
+
+	UNIV  shift 28
+	PI  shift 29
+	SIGMA  shift 30
+	BOOL  shift 31
+	NAT  shift 32
+	LCID  shift 33
+	LPAREN  shift 34
+	.  error
+
+	Type  goto 57
+
+
+state 31
+	Type : BOOL .  (18)
+
+	.  reduce 18
+
+
+state 32
+	Type : NAT .  (19)
+
+	.  reduce 19
+
+
+state 33
+	Type : LCID .  (16)
+
+	.  reduce 16
+
+
+state 34
+	Type : LPAREN . Type RPAREN  (23)
+
+	UNIV  shift 28
+	PI  shift 29
+	SIGMA  shift 30
+	BOOL  shift 31
+	NAT  shift 32
+	LCID  shift 33
+	LPAREN  shift 34
+	.  error
+
+	Type  goto 58
+
+
+state 35
+	Type : Type . ARROW Type  (20)
+	ApTerm : PI Type . Term  (30)
+
+	UNIV  shift 4
+	PI  shift 5
+	SIGMA  shift 6
+	BOOL  shift 7
+	NAT  shift 8
+	SUCC  shift 9
+	PRED  shift 10
+	ISZERO  shift 11
+	LAMBDA  shift 12
+	IF  shift 13
+	TRUE  shift 14
+	FALSE  shift 15
+	LCID  shift 37
+	INTV  shift 18
+	ARROW  shift 59
+	LPAREN  shift 20
+	.  error
+
+	Term  goto 60
+	ApTerm  goto 25
+	ATerm  goto 26
+
+
+state 36
+	Type : Type . ARROW Type  (20)
+	ApTerm : SIGMA Type . Term  (31)
+
+	UNIV  shift 4
+	PI  shift 5
+	SIGMA  shift 6
+	BOOL  shift 7
+	NAT  shift 8
+	SUCC  shift 9
+	PRED  shift 10
+	ISZERO  shift 11
+	LAMBDA  shift 12
+	IF  shift 13
+	TRUE  shift 14
+	FALSE  shift 15
+	LCID  shift 37
+	INTV  shift 18
+	ARROW  shift 59
+	LPAREN  shift 20
+	.  error
+
+	Term  goto 61
+	ApTerm  goto 25
+	ATerm  goto 26
+
+
+state 37
+	ATerm : LCID .  (36)
+
+	.  reduce 36
+
+
+state 38
+	ApTerm : SUCC ATerm .  (32)
+
+	.  reduce 32
+
+
+state 39
+	ApTerm : PRED ATerm .  (33)
+
+	.  reduce 33
+
+
+state 40
+	ApTerm : ISZERO ATerm .  (34)
+
+	.  reduce 34
+
+
+state 41
+	Term : LAMBDA LCID . COLON Type DOT Term  (26)
+
+	COLON  shift 62
+	.  error
+
+
+state 42
+	Term : IF Term . THEN Term ELSE Term  (27)
+
+	THEN  shift 63
+	.  error
+
+
+state 43
+	TyBinder : EQ . Type  (13)
+
+	UNIV  shift 28
+	PI  shift 29
+	SIGMA  shift 30
+	BOOL  shift 31
+	NAT  shift 32
+	LCID  shift 33
+	LPAREN  shift 34
+	.  error
+
+	Type  goto 64
+
+
+state 44
+	Command : UCID TyBinder .  (10)
+
+	.  reduce 10
+
+
+state 45
+	Binder : COLON . Type  (14)
+
+	UNIV  shift 28
+	PI  shift 29
+	SIGMA  shift 30
+	BOOL  shift 31
+	NAT  shift 32
+	LCID  shift 33
+	LPAREN  shift 34
+	.  error
+
+	Type  goto 65
+
+
+state 46
+	Binder : EQ . Term  (15)
+
+	UNIV  shift 4
+	PI  shift 5
+	SIGMA  shift 6
+	BOOL  shift 7
+	NAT  shift 8
+	SUCC  shift 9
+	PRED  shift 10
+	ISZERO  shift 11
+	LAMBDA  shift 12
+	IF  shift 13
+	TRUE  shift 14
+	FALSE  shift 15
+	LCID  shift 37
+	INTV  shift 18
+	LPAREN  shift 20
+	.  error
+
+	Term  goto 66
+	ApTerm  goto 25
+	ATerm  goto 26
+
+
+state 47
+	Command : LCID Binder .  (11)
+
+	.  reduce 11
+
+
+state 48
+	TermSeq : Term .  (43)
+
+	.  reduce 43
+
+
+state 49
+	ATerm : LPAREN TermSeq . RPAREN  (35)
+
+	RPAREN  shift 67
+	.  error
+
+
+state 50
+	toplevel : Command SEMI . toplevel  (8)
+
+	UNIV  shift 4
+	PI  shift 5
+	SIGMA  shift 6
+	BOOL  shift 7
+	NAT  shift 8
+	SUCC  shift 9
+	PRED  shift 10
+	ISZERO  shift 11
+	LAMBDA  shift 12
+	IF  shift 13
+	TRUE  shift 14
+	FALSE  shift 15
+	UCID  shift 16
+	LCID  shift 17
+	INTV  shift 18
+	EOF  shift 19
+	LPAREN  shift 20
+	.  error
+
+	toplevel  goto 68
+	Command  goto 22
+	TermWrap  goto 23
+	Term  goto 24
+	ApTerm  goto 25
+	ATerm  goto 26
+
+
+state 51
+	ApTerm : ApTerm ATerm .  (29)
+
+	.  reduce 29
+
+
+state 52
+	input : input SHOWCONTEXT . DOUBLESEMI  (2)
+
+	DOUBLESEMI  shift 69
+	.  error
+
+
+state 53
+	input : input DOUBLESEMI .  (3)
+
+	.  reduce 3
+
+
+state 54
+	input : input oneREPL .  (4)
+
+	.  reduce 4
+
+
+state 55
+	oneREPL : Command . DOUBLESEMI  (5)
+	oneREPL : Command . SEMI oneREPL  (6)
+
+	SEMI  shift 70
+	DOUBLESEMI  shift 71
+	.  error
+
+
+state 56
+	Type : Type . ARROW Type  (20)
+	Type : PI Type . Term  (21)
+
+	UNIV  shift 4
+	PI  shift 5
+	SIGMA  shift 6
+	BOOL  shift 7
+	NAT  shift 8
+	SUCC  shift 9
+	PRED  shift 10
+	ISZERO  shift 11
+	LAMBDA  shift 12
+	IF  shift 13
+	TRUE  shift 14
+	FALSE  shift 15
+	LCID  shift 37
+	INTV  shift 18
+	ARROW  shift 59
+	LPAREN  shift 20
+	.  error
+
+	Term  goto 72
+	ApTerm  goto 25
+	ATerm  goto 26
+
+
+state 57
+	Type : Type . ARROW Type  (20)
+	Type : SIGMA Type . Term  (22)
+
+	UNIV  shift 4
+	PI  shift 5
+	SIGMA  shift 6
+	BOOL  shift 7
+	NAT  shift 8
+	SUCC  shift 9
+	PRED  shift 10
+	ISZERO  shift 11
+	LAMBDA  shift 12
+	IF  shift 13
+	TRUE  shift 14
+	FALSE  shift 15
+	LCID  shift 37
+	INTV  shift 18
+	ARROW  shift 59
+	LPAREN  shift 20
+	.  error
+
+	Term  goto 73
+	ApTerm  goto 25
+	ATerm  goto 26
+
+
+state 58
+	Type : Type . ARROW Type  (20)
+	Type : LPAREN Type . RPAREN  (23)
+
+	ARROW  shift 59
+	RPAREN  shift 74
+	.  error
+
+
+state 59
+	Type : Type ARROW . Type  (20)
+
+	UNIV  shift 28
+	PI  shift 29
+	SIGMA  shift 30
+	BOOL  shift 31
+	NAT  shift 32
+	LCID  shift 33
+	LPAREN  shift 34
+	.  error
+
+	Type  goto 75
+
+
+state 60
+	ApTerm : PI Type Term .  (30)
+
+	.  reduce 30
+
+
+state 61
+	ApTerm : SIGMA Type Term .  (31)
+
+	.  reduce 31
+
+
+state 62
+	Term : LAMBDA LCID COLON . Type DOT Term  (26)
+
+	UNIV  shift 28
+	PI  shift 29
+	SIGMA  shift 30
+	BOOL  shift 31
+	NAT  shift 32
+	LCID  shift 33
+	LPAREN  shift 34
+	.  error
+
+	Type  goto 76
+
+
+state 63
+	Term : IF Term THEN . Term ELSE Term  (27)
+
+	UNIV  shift 4
+	PI  shift 5
+	SIGMA  shift 6
+	BOOL  shift 7
+	NAT  shift 8
+	SUCC  shift 9
+	PRED  shift 10
+	ISZERO  shift 11
+	LAMBDA  shift 12
+	IF  shift 13
+	TRUE  shift 14
+	FALSE  shift 15
+	LCID  shift 37
+	INTV  shift 18
+	LPAREN  shift 20
+	.  error
+
+	Term  goto 77
+	ApTerm  goto 25
+	ATerm  goto 26
+
+
+state 64
+	TyBinder : EQ Type .  (13)
+	Type : Type . ARROW Type  (20)
+
+	ARROW  shift 59
+	SEMI  reduce 13
+	DOUBLESEMI  reduce 13
+
+
+state 65
+	Binder : COLON Type .  (14)
+	Type : Type . ARROW Type  (20)
+
+	ARROW  shift 59
+	SEMI  reduce 14
+	DOUBLESEMI  reduce 14
+
+
+state 66
+	Binder : EQ Term .  (15)
+
+	.  reduce 15
+
+
+state 67
+	ATerm : LPAREN TermSeq RPAREN .  (35)
+
+	.  reduce 35
+
+
+state 68
+	toplevel : Command SEMI toplevel .  (8)
+
+	.  reduce 8
+
+
+state 69
+	input : input SHOWCONTEXT DOUBLESEMI .  (2)
+
+	.  reduce 2
+
+
+state 70
+	oneREPL : Command SEMI . oneREPL  (6)
+
+	UNIV  shift 4
+	PI  shift 5
+	SIGMA  shift 6
+	BOOL  shift 7
+	NAT  shift 8
+	SUCC  shift 9
+	PRED  shift 10
+	ISZERO  shift 11
+	LAMBDA  shift 12
+	IF  shift 13
+	TRUE  shift 14
+	FALSE  shift 15
+	UCID  shift 16
+	LCID  shift 17
+	INTV  shift 18
+	LPAREN  shift 20
+	.  error
+
+	oneREPL  goto 78
+	Command  goto 55
+	TermWrap  goto 23
+	Term  goto 24
+	ApTerm  goto 25
+	ATerm  goto 26
+
+
+state 71
+	oneREPL : Command DOUBLESEMI .  (5)
+
+	.  reduce 5
+
+
+state 72
+	Type : PI Type Term .  (21)
+
+	.  reduce 21
+
+
+state 73
+	Type : SIGMA Type Term .  (22)
+
+	.  reduce 22
+
+
+state 74
+	Type : LPAREN Type RPAREN .  (23)
+
+	.  reduce 23
+
+
+75: shift/reduce conflict (shift 59, reduce 20) on ARROW
+state 75
+	Type : Type . ARROW Type  (20)
+	Type : Type ARROW Type .  (20)
+
+	ARROW  shift 59
+	UNIV  reduce 20
+	PI  reduce 20
+	SIGMA  reduce 20
+	BOOL  reduce 20
+	NAT  reduce 20
+	SUCC  reduce 20
+	PRED  reduce 20
+	ISZERO  reduce 20
+	LAMBDA  reduce 20
+	IF  reduce 20
+	TRUE  reduce 20
+	FALSE  reduce 20
+	LCID  reduce 20
+	INTV  reduce 20
+	DOT  reduce 20
+	LPAREN  reduce 20
+	RPAREN  reduce 20
+	SEMI  reduce 20
+	DOUBLESEMI  reduce 20
+
+
+state 76
+	Type : Type . ARROW Type  (20)
+	Term : LAMBDA LCID COLON Type . DOT Term  (26)
+
+	ARROW  shift 59
+	DOT  shift 79
+	.  error
+
+
+state 77
+	Term : IF Term THEN Term . ELSE Term  (27)
+
+	ELSE  shift 80
+	.  error
+
+
+state 78
+	oneREPL : Command SEMI oneREPL .  (6)
+
+	.  reduce 6
+
+
+state 79
+	Term : LAMBDA LCID COLON Type DOT . Term  (26)
+
+	UNIV  shift 4
+	PI  shift 5
+	SIGMA  shift 6
+	BOOL  shift 7
+	NAT  shift 8
+	SUCC  shift 9
+	PRED  shift 10
+	ISZERO  shift 11
+	LAMBDA  shift 12
+	IF  shift 13
+	TRUE  shift 14
+	FALSE  shift 15
+	LCID  shift 37
+	INTV  shift 18
+	LPAREN  shift 20
+	.  error
+
+	Term  goto 81
+	ApTerm  goto 25
+	ATerm  goto 26
+
+
+state 80
+	Term : IF Term THEN Term ELSE . Term  (27)
+
+	UNIV  shift 4
+	PI  shift 5
+	SIGMA  shift 6
+	BOOL  shift 7
+	NAT  shift 8
+	SUCC  shift 9
+	PRED  shift 10
+	ISZERO  shift 11
+	LAMBDA  shift 12
+	IF  shift 13
+	TRUE  shift 14
+	FALSE  shift 15
+	LCID  shift 37
+	INTV  shift 18
+	LPAREN  shift 20
+	.  error
+
+	Term  goto 82
+	ApTerm  goto 25
+	ATerm  goto 26
+
+
+state 81
+	Term : LAMBDA LCID COLON Type DOT Term .  (26)
+
+	.  reduce 26
+
+
+state 82
+	Term : IF Term THEN Term ELSE Term .  (27)
+
+	.  reduce 27
+
+
+State 25 contains 8 shift/reduce conflicts.
+State 75 contains 1 shift/reduce conflict.
+
+
+68 terminals, 14 nonterminals
+46 grammar rules, 83 states
