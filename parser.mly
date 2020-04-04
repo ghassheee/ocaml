@@ -132,33 +132,33 @@ Binder      :
 
 Type :
     | LCID                              { fun ctx   ->  Var($1.i,name2index $1.i ctx $1.v,ctxlen ctx)}
-    | UNIV                              { fun ctx   ->  Universe($1,0)                           }
+    | UNIV                              { fun ctx   ->  Univ($1,0)                           }
     | BOOL                              { fun ctx   ->  Bool($1)                               }
     | NAT                               { fun ctx   ->  Nat($1)                                }
-    | Type ARROW Type                   { fun ctx   ->  App($2,App($2,Pi($2),$1 ctx),Abs($2,"_",$1 ctx,$3 ctx))}
-    | PI Type Term                      { fun ctx   ->  App($1,App($1,Pi($1),$2 ctx),$3 ctx)}
-    | SIGMA Type Term                   { fun ctx   ->  App($1,App($1,Sigma($1),$2 ctx),$3 ctx)}
+    | Type ARROW Type                   { fun ctx   ->  Ap($2,Ap($2,Pi($2),$1 ctx),Lam($2,"_",$1 ctx,$3 ctx))}
+    | PI Type Term                      { fun ctx   ->  Ap($1,Ap($1,Pi($1),$2 ctx),$3 ctx)}
+    | SIGMA Type Term                   { fun ctx   ->  Ap($1,Ap($1,Sgm($1),$2 ctx),$3 ctx)}
     | LPAREN Type RPAREN                { $2 } 
 
 /************    TERM    *************************************************************************/
 TermWrap    :
     | Term                              { $1                                                    } 
 Term        :
-    | AppTerm                           { $1                                                    }
-    | LAMBDA LCID COLON Type DOT Term   { fun ctx   ->  Abs($1,$2.v,$4 ctx,$6(addname ctx $2.v))}
+    | ApTerm                           { $1                                                    }
+    | LAMBDA LCID COLON Type DOT Term   { fun ctx   ->  Lam($1,$2.v,$4 ctx,$6(addname ctx $2.v))}
     | IF Term THEN Term ELSE Term       { fun ctx   ->  If($1,$2 ctx,$4 ctx,$6 ctx)           }
-AppTerm     :
+ApTerm     :
     | ATerm                             { $1                                                    }
-    | AppTerm ATerm                     { fun ctx   ->  App(tmInfo($1 ctx),$1 ctx,$2 ctx)     }
-    | PI Type Term                      { fun ctx   ->  App($1,App($1,Pi($1),$2 ctx),$3 ctx)}
-    | SIGMA Type Term                   { fun ctx   ->  App($1,App($1,Sigma($1),$2 ctx),$3 ctx)}
+    | ApTerm ATerm                     { fun ctx   ->  Ap(tmInfo($1 ctx),$1 ctx,$2 ctx)     }
+    | PI Type Term                      { fun ctx   ->  Ap($1,Ap($1,Pi($1),$2 ctx),$3 ctx)}
+    | SIGMA Type Term                   { fun ctx   ->  Ap($1,Ap($1,Sgm($1),$2 ctx),$3 ctx)}
     | SUCC ATerm                        { fun ctx   ->  Succ($1, $2 ctx )                     }
     | PRED ATerm                        { fun ctx   ->  Pred($1, $2 ctx )                     }
     | ISZERO ATerm                      { fun ctx   ->  IsZero($1, $2 ctx)                    }
 ATerm       :                               /* Atomic terms never require extra parentheses */
     | LPAREN TermSeq RPAREN             { $2                                                    }
     | LCID                              { fun ctx   ->  Var($1.i,name2index $1.i ctx $1.v,ctxlen ctx) } 
-    | UNIV                              { fun ctx   ->  Universe($1,0)                           }
+    | UNIV                              { fun ctx   ->  Univ($1,0)                           }
     | BOOL                              { fun ctx   ->  Bool($1)                               }
     | NAT                               { fun ctx   ->  Nat($1)                                }
     | TRUE                              { fun ctx   ->  True($1)                              }

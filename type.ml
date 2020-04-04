@@ -2,7 +2,7 @@ open Support.Error
 open Support.Pervasive
 open Syntax
 
-exception NoRuleApplies 
+exception NoRuleAplies 
 
 (* Bind Print *)    
 let prbindty ctx = function
@@ -16,37 +16,37 @@ let prbindty ctx = function
 (* ----------- TYPING --------------- *) 
 
 let rec tyeqv ctx tyT tyS = match (tyS,tyT) with 
-    | Universe(_,i),Universe(_,j)       -> i = j
+    | Univ(_,i),Univ(_,j)       -> i = j
     | Bool(_),Bool(_)                   -> true
     | Nat(_),Nat(_)                     -> true 
     | If(_,a,b,c),If(_,x,y,z)           -> tyeqv ctx a x && tyeqv ctx b y && tyeqv ctx c z 
-    | App(_,App(_,Pi(_),tyA),Abs(_,_,_,tyB)),App(_,App(_,Pi(_),tyC),Abs(_,_,_,tyD)) 
-                                        -> tyeqv ctx tyA tyC && tyeqv ctx tyB tyD 
+    | Ap(_,Ap(_,Pi(_),t),Lam(_,_,_,b)),Ap(_,Ap(_,Pi(_),c),Lam(_,_,_,d)) 
+                                        -> tyeqv ctx a c && tyeqv ctx b d  
     | Var(_,i,_),Var(_,j,_)             -> i = j
     | tyA,tyB                           -> (=) tyA tyB 
 
 and typeof ctx   t      = 
     let p str = pr str;pr"(∣Γ∣=";pi(ctxlen ctx);pr") ";pr_tm ctx t;pn() in match t with
-    | Universe(fi,i)                            ->  p "D-UNIVERSE    : ";   Universe(fi,i+1) 
-    | App(fi,App(_,Pi(_),tyA),Abs(_,a,_,tyB))   ->  p "D-PI          : ";   
+    | Univ(fi,i)                            ->  p "D-UNIVERSE    : ";   Univ(fi,i+1) 
+    | Ap(fi,Ap(_,Pi(_),tyA),Lam(_,a,_,tyB))   ->  p "D-PI          : ";   
         let univ1 = typeof ctx tyA in 
         let ctx' = addbind ctx a (BindVar(tyA)) in
         let univ2 = typeof ctx' tyB in 
         if tyeqv ctx univ1 univ2 
-            then let Universe(_,i)=univ1 in Universe(fi,i) 
+            then let Univ(_,i)=univ1 in Univ(fi,i) 
             else err fi "Pi type takes two type belonging the same universe."
-    | Abs(fi,a,tyA,b)                           ->  p "D-ABS         : "; 
+    | Lam(fi,a,tyA,b)                           ->  p "D-ABS         : "; 
         let ctx'    = addbind ctx a (BindVar(tyA)) in 
         let tyB     = typeof ctx' b in 
-        App(fi,App(fi,Pi(fi),tyA),(Abs(fi,a,tyA,tyB)))  
-    | App(fi,t1,t2)                             ->  pr"[";pn();p "D-APP         : ";   
+        Ap(fi,Ap(fi,Pi(fi),tyA),(Lam(fi,a,tyA,tyB)))  
+    | Ap(fi,t1,t2)                             ->  pr"[";pn();p "D-APP         : ";   
         let tyT1 = typeof ctx t1 in
         let tyT2 = typeof ctx t2 in (match tyT1 with           
-        | App(_,App(_,Pi(_),tyA),Abs(_,_,_,tyB))-> 
+        | Ap(_,Ap(_,Pi(_),tyA),Lam(_,_,_,tyB))-> 
                 if tyeqv ctx tyT2 tyA then let tyT = tmSubstTop t1 tyB in pr"]";pn();tyT else err fi"D-APP Fail" 
         | _                                     ->  err fi "Π-type expected" )
-    | Bool(fi)                  ->  p "T-BOOL        : "; Universe(fi,0) 
-    | Nat(fi)                   ->  p "T-NAT         : "; Universe(fi,0) 
+    | Bool(fi)                  ->  p "T-BOOL        : "; Univ(fi,0) 
+    | Nat(fi)                   ->  p "T-NAT         : "; Univ(fi,0) 
     | Var(fi,i,_)               ->  p "T-VAR         : "; getTypeFromContext fi ctx i
     | True(fi)                  ->  p "T-TRUE        : "; Bool(fi)
     | False(fi)                 ->  p "T-FALSE       : "; Bool(fi)

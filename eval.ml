@@ -3,17 +3,17 @@ open Support.Error
 open Syntax
 open Type
 
-exception NoRuleApplies
+exception NoRuleAplies
 
 let rec eval1 ctx  t = let p str = pr str;pr_tm ctx t;pn() in match t with  
     | Var(fi,i,_)                           ->  (match getbind fi ctx i with 
         | BindAbb(t,_)                      ->  t
         | BindTyAbb(t)                      ->  t
         | _                                 -> err fi "variable cannot be evaluated")
-    | App(_,App(_,Pi(_),t1),t2)             ->  p"E-PI          : "; raise NoRuleApplies 
-    | App(_,Abs(_,_,_,t),v)when isval ctx v ->  p"E-APPABS      : "; tmSubstTop v t
-    | App(fi,v,t)when isval ctx v           ->  p"E-APP1        : "; App(fi,v,eval1 ctx t) 
-    | App(fi,t1,t2)                         ->  p"E-APP2        : "; App(fi,eval1 ctx t1,t2) 
+    | Ap(_,Ap(_,Pi(_),t1),t2)             ->  p"E-PI          : "; raise NoRuleAplies 
+    | Ap(_,Lam(_,_,_,t),v)when isval ctx v ->  p"E-APPABS      : "; tmSubstTop v t
+    | Ap(fi,v,t)when isval ctx v           ->  p"E-APP1        : "; Ap(fi,v,eval1 ctx t) 
+    | Ap(fi,t1,t2)                         ->  p"E-APP2        : "; Ap(fi,eval1 ctx t1,t2) 
     | If(_,True(_),t2,t3)                   ->  p"E-IFTRUE      : "; t2
     | If(_,False(_),t2,t3)                  ->  p"E-IFFLASE     : "; t3
     | If(fi,t1,t2,t3)                       ->  p"E-IF          : "; If(fi,eval1 ctx t1, t2, t3)
@@ -24,11 +24,11 @@ let rec eval1 ctx  t = let p str = pr str;pr_tm ctx t;pn() in match t with
     | IsZero(_,Zero(_))                     ->  p"E-ISZROZRO    : "; True(dummyinfo)
     | IsZero(_,Succ(_,n))when isnum ctx n   ->  p"E-ISZROSUC    : "; False(dummyinfo)
     | IsZero(fi,t1)                         ->  p"E-ISZRO       : "; IsZero(fi, eval1 ctx t1)
-    | _                                     ->  raise NoRuleApplies
+    | _                                     ->  raise NoRuleAplies
 
 let rec eval ctx t =
     try eval ctx (eval1 ctx t) 
-    with NoRuleApplies -> t
+    with NoRuleAplies -> t
 
 
 (*------------ Binding ------------*)

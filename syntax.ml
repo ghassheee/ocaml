@@ -8,17 +8,17 @@ let soi = string_of_int
 
 type term =
     (* Dependent *)
-    | Universe      of info * int 
-    | Sigma         of info 
+    | Univ          of info * int 
+    | Pi            of info 
+    | Sgm           of info 
     | Bool          of info 
     | Nat           of info 
-    | Pi            of info 
     (* Let  *)
     | Let           of info * string * term * term
     (* Lambda *) 
     | Var           of info * int * int 
-    | Abs           of info * string * term * term 
-    | App           of info * term * term 
+    | Lam           of info * string * term * term 
+    | Ap            of info * term * term 
     (* Arith *) 
     | Zero          of info
     | Succ          of info * term
@@ -66,8 +66,8 @@ let rec name2index fi ctx xn    =   match ctx with
 (* Shifting *)
 let rec tmWalk onVar c      = let f = onVar in function 
     | Var(fi,x,n)             -> onVar fi c x n
-    | Abs(fi,x,tyT,t2)        -> Abs(fi,x,tmWalk f c tyT,tmWalk f(c+1)t2)
-    | App(fi,t1,t2)           -> App(fi,tmWalk f c t1, tmWalk f c t2) 
+    | Lam(fi,x,tyT,t2)        -> Lam(fi,x,tmWalk f c tyT,tmWalk f(c+1)t2)
+    | Ap(fi,t1,t2)           -> Ap(fi,tmWalk f c t1, tmWalk f c t2) 
     | If(fi,t1,t2,t3)         -> If(fi,tmWalk f c t1, tmWalk f c t2, tmWalk f c t3) 
     | Succ(fi,t)              -> Succ(fi,tmWalk f c t) 
     | Pred(fi,t)              -> Pred(fi,tmWalk f c t) 
@@ -95,12 +95,12 @@ let tmSubstTop     s t      = pe"SUBSTITUTE    : [x↦s]t"; tmShift (-1) (tmSubs
 (* -------------------------------------------------- *) 
 (* Extracting file info *)
 let tmInfo  = function 
-    | Universe(fi,_)        -> fi 
+    | Univ(fi,_)        -> fi 
     | Pi(fi)                -> fi 
-    | Sigma(fi)             -> fi
+    | Sgm(fi)             -> fi
     | Var(fi,_,_)           -> fi
-    | Abs(fi,_,_,_)         -> fi
-    | App(fi,_,_)           -> fi 
+    | Lam(fi,_,_,_)         -> fi
+    | Ap(fi,_,_)           -> fi 
     | Let(fi,_,_,_)         -> fi
     | True(fi)              -> fi
     | False(fi)             -> fi
@@ -132,7 +132,7 @@ let rec isnum ctx   = function
     | _                             -> false
 
 let rec isval ctx   = function 
-    | Abs(_,_,_,_)                  -> true
+    | Lam(_,_,_,_)                  -> true
     | True(_)                       -> true
     | False(_)                      -> true
     | t when isnum ctx t            -> true
@@ -156,18 +156,18 @@ let small           = function
 let rec pr_Term outer ctx  = function 
     | Let(fi,x,t1,t2)         ->  obox0();
         pr"let ";pr x;pr" = ";pr_Term false ctx t1;ps();pr"in";ps();pr_Term false(addname ctx x)t2;   cbox()
-    | Abs(fi,x,tyT1,t2)       ->  let (ctx',x')=pickfreshname ctx x in obox();
+    | Lam(fi,x,tyT1,t2)       ->  let (ctx',x')=pickfreshname ctx x in obox();
         pr"λ";pr x';pr":";pr_Term false ctx tyT1;pr".";psbr((not(small t2))||outer);pr_Term outer ctx' t2;  cbox()
     | If(fi, t1, t2, t3)      ->  obox0();
         pr"if "  ;pr_Term false ctx t1;ps();
         pr"then ";pr_Term false ctx t2;ps();
         pr"else ";pr_Term false ctx t3;      cbox()
-    | t                         -> pr_AppTerm outer ctx t
+    | t                         -> pr_ApTerm outer ctx t
 
-and pr_AppTerm outer ctx   = function 
-    | App(_,App(_,Pi(_),t1),(Abs(_,x,tyT,t2)as t)) 
+and pr_ApTerm outer ctx   = function 
+    | Ap(_,Ap(_,Pi(_),t1),(Lam(_,x,tyT,t2)as t)) 
                                 ->  pr"Π(";pr x;pr":";pr_Term false ctx t1;pr")";pr_ATerm false ctx t 
-    | App(fi, t1, t2)           ->  obox0();  pr_AppTerm false ctx t1;ps();pr_ATerm false ctx t2;  cbox();
+    | Ap(fi, t1, t2)           ->  obox0();  pr_ApTerm false ctx t1;ps();pr_ATerm false ctx t2;  cbox();
     | Pred(_,t)                 ->  pr"pred "  ;pr_ATerm false ctx t
     | Succ(_,t)                 ->  let rec f n = function 
         | Zero(_)                   -> pi n 
@@ -180,7 +180,7 @@ and pr_PathTerm outer ctx   = function
     | t                         ->  pr_ATerm outer ctx t
 
 and pr_ATerm outer ctx     = function 
-    | Universe(_,_)             ->  pr "𝒰"
+    | Univ(_,_)             ->  pr "𝒰"
     | Bool(_)                   ->  pr "𝐁"
     | Nat(_)                    ->  pr "𝐍"
     | Var(fi,x,n)               ->  (* pr (index2name fi ctx x) *)
