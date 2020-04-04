@@ -30,6 +30,10 @@ let rec occurcheck x      = function
 
 let rec unify fi ctx msg l   =  if l = [] then [] else  let c::cs = l in 
     let p (tyS,tyT) = pr"UNIFY: ";pr_Type false ctx tyS;pr", ";pr_Type false ctx tyT;pn() in match (c::cs) with 
+    | (tyT,TyRec(x,tyS))::rest  ->  p c;                                    
+                                    unify fi ctx msg ((tyS,tyT)::rest)
+    | (TyRec(x,tyS),tyT)::rest  ->  p c;                                    
+                                    unify fi ctx msg ((tyS,tyT)::rest)
     | (TyId(x),tyT)::rest       ->  (p c ;if tyT = TyId(x) 
                                     then unify fi ctx msg rest
                                     else if occurcheck x tyT 

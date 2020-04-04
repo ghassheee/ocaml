@@ -119,7 +119,7 @@ let process_command ctx store nextuvar constr = function
             let sol         = unify fi ctx "Could not simplify constraints" constr' in
             pr_constr ctx sol ;pn(); 
             pe"----------------   SOLUTION FOUND ! ----------------";
-            pr_tm ctx t';pb 1 2;pr ": ";pr_ty ctx (apply_constr sol tyT);pn();pn(); 
+            pr_tm ctx t';pb 1 2;pr ": ";pr_ty ctx (apply_constr sol (apply_constr sol tyT));pn();pn(); 
             ctx,store',nextuvar',constr''
     | Bind(fi,x,bind)           ->  
             pr x;pr" ";prbindty ctx bind;pn();
