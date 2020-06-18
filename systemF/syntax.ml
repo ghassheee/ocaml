@@ -130,7 +130,7 @@ let rec name2index fi ctx xn    =   match ctx with
 (* Shifting *)
 
 let rec tyWalk onVar c          = let f = onVar in function 
-    | TyVar(k,n)                -> onVar c k n
+    | TyVar(x,n)                -> onVar c x n
     | TyRef(tyT)                -> TyRef(tyWalk f c tyT) 
     | TySource(tyT)             -> TySource(tyWalk f c tyT)
     | TySink(tyT)               -> TySink(tyWalk f c tyT) 
@@ -141,7 +141,7 @@ let rec tyWalk onVar c          = let f = onVar in function
     | tyT                       -> tyT
 
 let rec tmWalk onVar onType c   = let (f,g) = (onVar,onType) in function 
-    | TmVar(fi,k,n)             -> onVar c fi k n
+    | TmVar(fi,x,n)             -> onVar fi c x n
     | TmRef(fi,t)               -> TmRef(fi,tmWalk f g c t)
     | TmDeref(fi,t)             -> TmDeref(fi,tmWalk f g c t) 
     | TmAssign(fi,t1,t2)        -> TmAssign(fi,tmWalk f g c t1,tmWalk f g c t2)
@@ -164,13 +164,13 @@ let rec tmWalk onVar onType c   = let (f,g) = (onVar,onType) in function
     | TmUnfold(fi,tyT)          -> TmUnfold(fi,g c tyT) 
     | t                         -> t
 
-let tyShiftOnVar d c        = fun k n     ->  if k>=c then TyVar(k+d,n+d)     else TyVar(k,n+d) 
-let tyShiftAbove d c        = tyWalk (tyShiftOnVar d) c
-let tyShift d               = tyShiftAbove d 0    
+let tyShiftOnVar d          = fun c x n     ->  if x>=c then TyVar(x+d,n+d)     else TyVar(x,n+d) 
+let tyShiftAbove d          = tyWalk (tyShiftOnVar d) 
+let tyShift d               = (*if d>=0 then pe("TYVARSHIFT    : "^(soi d));*)tyShiftAbove d 0    
 
-let tmShiftOnVar d c        = fun fi k n  ->  if k>=c then TmVar(fi,k+d,n+d)  else TmVar(fi,k,n+d)
-let tmShiftAbove d c        = tmWalk (tmShiftOnVar d) (tyShiftAbove d) c
-let tmShift d               = tmShiftAbove d 0 
+let tmShiftOnVar d          = fun fi c x n  ->  if x>=c then TmVar(fi,x+d,n+d)  else TmVar(fi,x,n+d)
+let tmShiftAbove d          = tmWalk (tmShiftOnVar d) (tyShiftAbove d) 
+let tmShift d               = (*if d>=0 then pe("TMVARSHIFT    : "^(soi d));*)tmShiftAbove d 0 
 
 let bindshift d             = function 
     | BindTyAbb(tyT)            ->  BindTyAbb(tyShift d tyT) 
@@ -188,7 +188,7 @@ let tySubstOnVar j tyS tyT  = fun    c x n ->   if x=j+c then tyShift c tyS else
 let tySubst      j tyS tyT  = tyWalk(tySubstOnVar j tyS tyT)0 tyT
 let tySubstTop     tyS tyT  = pe"TYSUBSTTOP    : [X↦S]T"; tyShift (-1) (tySubst 0 (tyShift 1 tyS) tyT)
 
-let tmSubstOnVar j s t c    = fun fi x n ->   if x=j+c then tmShift c s else TmVar(fi, x, n) 
+let tmSubstOnVar j s t      = fun fi c x n ->   if x=j+c then tmShift c s else TmVar(fi, x, n) 
 let tmSubst      j s t      = tmWalk (tmSubstOnVar j s t) (fun x y -> y) 0 t
 let tmSubstTop     s t      = pe"SUBSTITUTE    : [x↦s]t"; tmShift (-1) (tmSubst 0 (tmShift 1 s) t) 
 

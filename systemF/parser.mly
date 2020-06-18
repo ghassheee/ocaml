@@ -130,20 +130,20 @@ let pe = print_endline
 /************   REPL   ***************************************************************************/
 
 input :   /* Left Recursion */
-    |                                   { fun _ _ _ _   ->  [],emptyctx,emptystore,uvargen,[]                   }
-    | input LOAD                        { let file              = $2.v in 
-                                          fun ctx s u c ->  [],ctx,s,u,c                                        }
-    | input SHOWCONTEXT DOUBLESEMI      { let _,ctx',s',u',c'   = $1 [] emptystore (uvargen) [] in pr_ctx ctx';
-                                          fun _ _ _ _   ->  [],ctx',s',u',c'                                    }  
-    | input DOUBLESEMI                  { fun ctx s u c ->  [],ctx,s,u,c                                        } 
+    |                                   { fun _ _ _ _ ->  [],emptyctx,emptystore,uvargen,[]                    }
+    | input LOAD                        { let file          = $2.v in 
+                                          fun ctx s u c ->  [],ctx,s,u,c                                   }
+    | input SHOWCONTEXT DOUBLESEMI      { let _,ctx',s',u',c' = $1 [] emptystore (uvargen) [] in pr_ctx ctx';
+                                          fun _ _ _ _  ->  [],ctx',s',u',c'                                  }  
+    | input DOUBLESEMI                  { fun ctx s u c->  [],ctx,s,u,c                                    } 
     | input oneREPL                     { let _,ev_ctx,s,u,c    = $1 [] emptystore (uvargen) [] in   
                                           let cmds,_            = $2 ev_ctx in 
                                           let ev_ctx',s',u',c'  = process_commands ev_ctx s u c cmds  in 
-                                          fun _ _ _ _   ->  [],ev_ctx',s',u',c'                                 } 
+                                          fun _ _ _ _  -> [],ev_ctx',s',u',c'                               } 
 oneREPL : 
-    | Command DOUBLESEMI                { fun ctx       ->  let cmd,ctx'    = $1 ctx in [cmd],ctx'      } 
-    | Command SEMI oneREPL              { fun ctx       ->  let cmd,ctx'    = $1 ctx in 
-                                                            let cmds,ctx''  = $3 ctx' in cmd::cmds,ctx''}
+    | Command DOUBLESEMI                { fun ctx   ->  let cmd,ctx'    = $1 ctx in [cmd],ctx'      } 
+    | Command SEMI oneREPL              { fun ctx   ->  let cmd,ctx'    = $1 ctx in 
+                                                        let cmds,ctx''  = $3 ctx' in cmd::cmds,ctx''}
 
 
 /************  COMPILER  *************************************************************************/
