@@ -14,10 +14,9 @@ open Interpreter
  * ###################### *)
 
 
-
 let main ()         =   
     parseArgs (); 
-    let _,_,_,_ = process_file (getFile ()) emptyctx emptystore uvargen [] in ()
+    let _,_ = process_file (getFile ()) emptyctx emptystore in ()
 
 let ()              =   set_max_boxes 1000
 let ()              =   set_margin 80

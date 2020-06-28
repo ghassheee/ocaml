@@ -34,6 +34,6 @@ if true then {x=true,y=false,a=false} else {y=false,x={},b=false};
 \ x:Nat. succ x;
 (\ x:Nat. succ (succ x)) (succ 0); 
 
-T = Nat->Nat;
-\ f:T. \ x:Nat. f (f x);
+NN = Nat->Nat;
+\ f:NN. \ x:Nat. f (f x);
 

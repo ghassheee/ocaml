@@ -10,36 +10,22 @@ type ty     =
     | TyVar     of int * int 
     | TyId      of string 
     | TyTop
-    | TyRef     of ty 
-    | TySource  of ty
-    | TySink    of ty 
     | TyVariant of (string * ty) list 
     | TyRecord  of (string * ty) list 
     | TyArr     of ty * ty
     | TyList    of ty 
-    | TyRec     of string * ty
     | TyFloat 
     | TyString  
     | TyUnit
     | TyBool
     | TyNat 
+    | TyAll     of string * ty
+    | TySome    of string * ty 
 ;;
 
 type term =
-    (* Recursive *)
-    | TmFold        of info * ty 
-    | TmUnfold      of info * ty 
-    (* Ref *)
-    | TmRef         of info * term 
-    | TmDeref       of info * term 
-    | TmLoc         of info * int 
-    | TmAssign      of info * term * term 
-    (* List *)
-    | TmNil         of info * ty
-    | TmCons        of info * ty * term * term 
-    | TmIsNil       of info * ty * term 
-    | TmHead        of info * ty * term 
-    | TmTail        of info * ty * term 
+    | TmTAbs        of info * string * term
+    | TmTApp        of info * term * ty 
     (* Fix *)
     | TmFix         of info * term 
     (* Float / String  *) 
@@ -48,7 +34,7 @@ type term =
     | TmTimesfloat  of info * term * term 
     (* Variant *)
     | TmTag         of info * string * term * ty 
-    | TmCase        of info * term * (string * (string * term)) list  (* <- (label*(variable*term) list *) 
+    | TmCase        of info * term * (string * (string * term)) list (* (label*(var*term) list *) 
     (* Record *)
     | TmProj        of info * term * string  
     | TmRecord      of info * (string * term) list 
@@ -60,7 +46,7 @@ type term =
     | TmLet         of info * string * term * term
     (* Lambda *) 
     | TmVar         of info * int * int 
-    | TmAbs         of info * string * ty option * term 
+    | TmAbs         of info * string * ty * term 
     | TmApp         of info * term * term 
     (* Arith *) 
     | TmZero        of info
@@ -77,34 +63,19 @@ type bind =
     | BindName
     | BindTyVar
     | BindTmVar     of ty
-    | BindTmAbb     of term * (ty option) 
     | BindTyAbb     of ty 
+    | BindTmAbb     of term * (ty option) 
 
 ;;
 
-type context = 
-    (string * bind) list 
-;;
+type context =      (string * bind) list 
 
 type command =
-    | Eval of info * term
-    | Bind of info * string * bind 
+    | Eval      of info * term
+    | Bind      of info * string * bind 
+    | SomeBind  of info * string * string * term 
 ;;
 
-(* -------------------------------------------------- *) 
-(* Type Reconstruction *)
-
-type constr             = (ty * ty) list 
-type nextuvar           = NextUVar of string * uvargenerator
-and  uvargenerator      = unit -> nextuvar 
-
-let emptyconstr         = []
-let combineconstr       = List.append
-
-
-let uvargen             = 
-    let rec f n ()          = NextUVar("?X" ^ string_of_int n, f(n+1))
-    in f 0 ;;
 
 (* -------------------------------------------------- *) 
 (* Context Management *) 
@@ -113,14 +84,18 @@ let emptyctx                    =   []
 let ctxlen          ctx         =   List.length ctx
 let addbind         ctx x bind  =   (x,bind) :: ctx 
 let addname         ctx x       =   addbind ctx x BindName 
-let rec isnamebound ctx x       =   match ctx with 
+
+let rec isbound ctx x           =   match ctx with 
     | []                                -> false
-    | (y,_) :: rest                     -> if y=x then true else isnamebound rest x;;
-let rec pickfreshname ctx x     =   if isnamebound ctx x 
-                                        then pickfreshname ctx (x^"'")
+    | (y,_) :: rest                     -> if y=x then true else isbound rest x;;
+
+let rec pickfresh ctx x         =   if isbound ctx x 
+                                        then pickfresh ctx (x^"'")
                                         else ((x,BindName)::ctx), x
-let     index2name fi ctx n     =   try let (xn,_) = List.nth ctx n in xn 
+
+let rec index2name fi ctx n     =   try let (xn,_) = List.nth ctx n in xn 
                                     with Failure _ -> error fi "Variable Lookup Failure"
+
 let rec name2index fi ctx xn    =   match ctx with 
     | []                                -> error fi ("Identifier "^xn^" is unbound")
     | (x,_) :: rest                     -> if x=xn then 0 else 1+(name2index fi rest xn)
@@ -131,38 +106,26 @@ let rec name2index fi ctx xn    =   match ctx with
 
 let rec tyWalk onVar c          = let f = onVar in function 
     | TyVar(x,n)                -> onVar c x n
-    | TyRef(tyT)                -> TyRef(tyWalk f c tyT) 
-    | TySource(tyT)             -> TySource(tyWalk f c tyT)
-    | TySink(tyT)               -> TySink(tyWalk f c tyT) 
     | TyVariant(fieldtys)       -> TyVariant(List.map (fun(l,tyT)->(l,tyWalk f c tyT)) fieldtys) 
     | TyRecord(fieldtys)        -> TyRecord(List.map (fun(l,tyT)->(l,tyWalk f c tyT)) fieldtys) 
     | TyArr(tyT1,tyT2)          -> TyArr(tyWalk f c tyT1,tyWalk f c tyT2) 
-    | TyRec(x,tyT)              -> TyRec(x,tyWalk f (c+1) tyT)
     | tyT                       -> tyT
 
 let rec tmWalk onVar onType c   = let (f,g) = (onVar,onType) in function 
     | TmVar(fi,x,n)             -> onVar fi c x n
-    | TmRef(fi,t)               -> TmRef(fi,tmWalk f g c t)
-    | TmDeref(fi,t)             -> TmDeref(fi,tmWalk f g c t) 
-    | TmAssign(fi,t1,t2)        -> TmAssign(fi,tmWalk f g c t1,tmWalk f g c t2)
     | TmCase(fi,t,cases)        -> TmCase(fi,tmWalk f g c t,List.map(fun(li,(xi,ti))->li,(xi,tmWalk f g(c+1)ti))cases)
-    | TmTag(fi,l,t,tyT)         -> TmTag(fi,l,tmWalk f g c t,g c tyT)
     | TmLet(fi,x,t1,t2)         -> TmLet(fi,x,tmWalk f g c t1, tmWalk f g(c+1)t2) 
-    | TmAbs(fi,x,Some(tyT),t2)  -> TmAbs(fi,x,Some(g c tyT),tmWalk f g(c+1)t2)
-    | TmAbs(fi,x,None,t2)       -> TmAbs(fi,x,None,tmWalk f g(c+1)t2)
+    | TmAbs(fi,x,tyT,t2)        -> TmAbs(fi,x,g c tyT,tmWalk f g(c+1)t2)
     | TmApp(fi,t1,t2)           -> TmApp(fi,tmWalk f g c t1, tmWalk f g c t2) 
     | TmIf(fi,t1,t2,t3)         -> TmIf(fi,tmWalk f g c t1, tmWalk f g c t2, tmWalk f g c t3) 
     | TmSucc(fi,t)              -> TmSucc(fi,tmWalk f g c t) 
     | TmPred(fi,t)              -> TmPred(fi,tmWalk f g c t) 
     | TmIsZero(fi,t)            -> TmIsZero(fi,tmWalk f g c t)
     | TmAscribe(fi,t,tyT)       -> TmAscribe(fi,tmWalk f g c t,g c tyT) 
-    | TmRecord(fi,flds)         -> TmRecord(fi,List.map(fun(l,t)->(l,tmWalk f g c t))flds)  
+    | TmRecord(fi,tl)           -> TmRecord(fi,List.map(fun(l,t)->(l,tmWalk f g c t))tl)  
     | TmProj(fi,t,i)            -> TmProj(fi,tmWalk f g c t,i) 
     | TmFix(fi,t)               -> TmFix(fi,tmWalk f g c t)
-    | TmTimesfloat(fi,t1,t2)    -> TmTimesfloat(fi,tmWalk f g c t1,tmWalk f g c t2)
-    | TmFold(fi,tyT)            -> TmFold(fi,g c tyT)
-    | TmUnfold(fi,tyT)          -> TmUnfold(fi,g c tyT) 
-    | t                         -> t
+    | x                         -> x
 
 let tyShiftOnVar d          = fun c x n     ->  if x>=c then TyVar(x+d,n+d)     else TyVar(x,n+d) 
 let tyShiftAbove d          = tyWalk (tyShiftOnVar d) 
@@ -186,20 +149,15 @@ let bindshift d             = function
 (* Substitution *) 
 let tySubstOnVar j tyS tyT  = fun    c x n ->   if x=j+c then tyShift c tyS else TyVar(x,n) 
 let tySubst      j tyS tyT  = tyWalk(tySubstOnVar j tyS tyT)0 tyT
-let tySubstTop     tyS tyT  = pe"TYSUBSTTOP    : [X↦S]T"; tyShift (-1) (tySubst 0 (tyShift 1 tyS) tyT)
 
 let tmSubstOnVar j s t      = fun fi c x n ->   if x=j+c then tmShift c s else TmVar(fi, x, n) 
-let tmSubst      j s t      = tmWalk (tmSubstOnVar j s t) (fun x y -> y) 0 t
+let tmSubst      j s t      = tmWalk (tmSubstOnVar j s t) (fun k x -> x) 0 t
 let tmSubstTop     s t      = pe"SUBSTITUTE    : [x↦s]t"; tmShift (-1) (tmSubst 0 (tmShift 1 s) t) 
 
 
 (* -------------------------------------------------- *) 
 (* Extracting file info *)
 let tmInfo  = function 
-    | TmRef(fi,_)           -> fi 
-    | TmDeref(fi,_)         -> fi 
-    | TmAssign(fi,_,_)      -> fi 
-    | TmLoc(fi,_)           -> fi 
     | TmUnit(fi)            -> fi 
     | TmVar(fi,_,_)         -> fi
     | TmAbs(fi,_,_,_)       -> fi
@@ -221,8 +179,6 @@ let tmInfo  = function
     | TmFloat(fi,_)         -> fi
     | TmTimesfloat(fi,_,_)  -> fi 
     | TmFix(fi,_)           -> fi
-    | TmFold(fi,_)          -> fi 
-    | TmUnfold(fi,_)        -> fi 
 
 (* -------------------------------------------------- *) 
 (* Bind *) 
@@ -230,7 +186,7 @@ let rec getbind fi ctx i        =   try let (_,bind) = List.nth ctx i in bindshi
                                     with Failure _ -> error fi(getbind_err_msg i(ctxlen ctx))
 
 let getTypeFromContext fi ctx n =   match getbind fi ctx n with 
-    | BindTmVar(tyT)                    -> tyT
+    | BindTmVar(tyT)                      -> tyT
     | BindTmAbb(_,Some(tyT))            -> tyT
     | BindTmAbb(_,None)                 -> error fi ("No type recorded for variable "^(index2name fi ctx n))
     | _                                 -> error fi("getTypeFromContext: Wrong binding"^(index2name fi ctx n))
@@ -243,17 +199,15 @@ let rec isnum ctx   = function
     | _                             -> false
 
 let rec isval ctx   = function 
+    | TmAbs(_,_,_,_)                -> true
+    | TmUnit(_)                     -> true
     | TmTrue(_)                     -> true
     | TmFalse(_)                    -> true
-    | TmAbs(_,_,_,_)                -> true
-    | TmLoc(_,_)                    -> true 
-    | TmUnit(_)                     -> true
-    | TmRecord(_,flds)              -> List.for_all (fun(l,t)->isval ctx t) flds 
+    | TmRecord(_,flds)              -> List.for_all (fun(_,t)->isval ctx t) flds 
     | TmTag(_,_,t,_)                -> isval ctx t
     | TmString(_,_)                 -> true
     | TmFloat(_,_)                  -> true
     | t when isnum ctx t            -> true
-    | TmApp(_,TmFold(_,_),t)        -> isval ctx t 
     | _                             -> false
 
 
@@ -284,11 +238,6 @@ let rec pr_flds prTm outer ctx i =
 (* -------------------------------------------------- *) 
 (* Type Print *) 
 let rec pr_Type outer ctx   = function
-    | TyRec(x,tyT)              ->  let ctx',x = pickfreshname ctx x in 
-                                    obox(); pr"μ";pr x;pr".";ps();pr_Type outer ctx' tyT; cbox()
-    | TyRef(tyT)                ->  pr"Ref ";pr_AType false ctx tyT
-    | TySource(tyT)             ->  pr"Source ";pr_AType false ctx tyT 
-    | TySink(tyT)               ->  pr"Sink ";pr_AType false ctx tyT 
     | tyT                       ->  pr_ArrowType outer ctx tyT
 
 and pr_ArrowType outer ctx  = function
@@ -300,14 +249,13 @@ and pr_ArrowType outer ctx  = function
 
 and pr_AType outer ctx      = function
 
-    | TyTop                     ->  pr "𝐓"
     | TyFloat                   ->  pr "𝐅"  
     | TyString                  ->  pr "𝐒" 
     | TyBool                    ->  pr "𝐁" 
     | TyNat                     ->  pr "𝐍"
     | TyUnit                    ->  pr "𝐔"
     | TyId(s)                   ->  pr s
-    | TyVar(i,n)                ->  if true (* ctxlen ctx = n *)then pr(index2name dummyinfo ctx i)else pr"[BadIndex]"  
+    | TyVar(i,n)                ->  if ctxlen ctx = n then pr(index2name dummyinfo ctx i)else pr"[BadIndex]"  
     | TyVariant(flds)           ->  pr"<"; oobox0(); pr_fldtys pr_Type outer ctx 1 flds; pr">"; cbox()
     | TyRecord(flds)            ->  pr"{"; oobox0(); pr_fldtys pr_Type outer ctx 1 flds; pr"}"; cbox()
     | tyT                       ->  pr"("; pr_Type outer ctx tyT; pr ")"
@@ -318,7 +266,7 @@ let pr_ty ctx tyT               = pr_Type true ctx tyT
 
 let rec pr_cases prTm outer ctx = 
     let pr_case (li,(xi,ti)) = 
-    let (ctx',xi') = pickfreshname ctx xi in  
+    let (ctx',xi') = pickfresh ctx xi in  
     pr"<";pr li;pr"=";pr xi';pr"> ==> ";prTm false ctx' ti in function 
     | []        -> ()
     | [c]       -> pr"| ";pr_case c;ps(); 
@@ -327,59 +275,49 @@ let rec pr_cases prTm outer ctx =
 (* -------------------------------------------------- *) 
 (* Term Print *)
 let rec pr_Term outer ctx  = function 
-    | TmAbs(_,x,None,t)         ->  let (ctx',x')=pickfreshname ctx x in obox();
-        pr"λ";pr x';pr".";psbr((not(small t))||outer);pr_Term outer ctx' t;  cbox()
-    | TmAbs(_,x,Some(tyX),t)    ->  let (ctx',x')=pickfreshname ctx x in obox();
-        pr"λ";pr x';pr":";pr_Type false ctx tyX;pr".";psbr((not(small t))||outer);pr_Term outer ctx' t;  cbox()
+    | TmCase(_,t,cases)         ->  obox();
+        pr"case ";pr_Term false ctx t;pr" of";ps();pr_cases pr_Term outer ctx cases;  cbox()
+    | TmLet(_,x,t1,t2)          ->  obox0();
+        pr"let ";pr x;pr" = ";pr_Term false ctx t1;ps();pr"in";ps();pr_Term false(addname ctx x)t2;   cbox()
+    | TmAbs(_,x,tyT1,t2)        ->  let (ctx',x')=pickfresh ctx x in obox();
+        pr"λ";pr x';pr":";pr_Type false ctx tyT1;pr".";psbr((not(small t2))||outer);pr_Term outer ctx' t2;  cbox()
     | TmIf(_, t1, t2, t3)       ->  obox0();
         pr"if "  ;pr_Term false ctx t1;ps();
         pr"then ";pr_Term false ctx t2;ps();
         pr"else ";pr_Term false ctx t3;      cbox()
-    | TmLet(_,x,t1,t2)          ->  obox0();
-        pr"let ";pr x;pr" = ";pr_Term false ctx t1;ps();pr"in";ps();pr_Term false(addname ctx x)t2;   cbox()
-    | TmFix(_,t)                ->  pr"fix "   ;pr_ATerm false ctx t
-    | TmCase(_,t,cases)         ->  obox();
-        pr"case ";pr_Term false ctx t;pr" of";ps();pr_cases pr_Term outer ctx cases;  cbox()
-    | TmAssign(_,t1,t2)         ->  obox();pr_AppTerm false ctx t1;pr" := ";pr_ATerm false ctx t2;cbox()
     | t                         -> pr_AppTerm outer ctx t
 
 and pr_AppTerm outer ctx   = function 
     | TmApp(_, t1, t2)          ->  obox0();  pr_AppTerm false ctx t1;ps();pr_ATerm false ctx t2;  cbox();
-    | TmFold(_,tyT)             ->  obox0();pr"fold [";pr_Type false ctx tyT;pr"]";cbox()
-    | TmUnfold(_,tyT)           ->  obox0();pr"unfold [";pr_Type false ctx tyT;pr"]";cbox()
-    | TmRef(_,t)                ->  pr"ref "   ;pr_ATerm false ctx t
-    | TmDeref(_,t)              ->  pr"!"      ;pr_ATerm false ctx t  
     | TmPred(_,t)               ->  pr"pred "  ;pr_ATerm false ctx t
-    | TmTimesfloat(_,t1,t2)     ->  pr_AppTerm outer ctx t1;pr" *. ";pr_AppTerm outer ctx t2
-    | TmIsZero(_,t)             ->  pr"iszero ";pr_ATerm false ctx t
-    | t                         ->  pr_PathTerm outer ctx t 
-
-and pr_PathTerm outer ctx   = function
-    | TmProj(_,t,l)             ->  pr_ATerm false ctx t; pr"."; pr l
-    | t                         ->  pr_AscribeTerm outer ctx t 
-
-and pr_AscribeTerm outer ctx  = function 
-    | TmAscribe(_,t,tyT)        ->  obox0(); pr_AppTerm false ctx t;ps();pr"as ";pr_Type false ctx tyT;cbox()
-    | t                         ->  pr_ATerm outer ctx t
-    
-and pr_ATerm outer ctx     = function 
-    | TmVar(fi,x,n)             -> let l = ctxlen ctx in if l = n 
-        then pr (index2name fi ctx x)
-        else (pr"[ContextErr: ";pi l;pr"!=";pi n;pr" in { Γ:";pr(List.fold_left(fun s(x,_)->s^" "^x)""ctx);pr" }]")  
-    | TmTrue(_)                 ->  pr "true"
-    | TmFalse(_)                ->  pr "false"
-    | TmRecord(fi,flds)         ->  pr"{"; oobox0(); pr_flds pr_Term outer ctx 1 flds; pr "}"; cbox()
-    | TmTag(fi,l,t,tyT)         ->  obox(); 
-        pr"<";pr l;pr"=";pr_Term false ctx t;pr">";ps();pr" : ";pr_Type outer ctx tyT;  cbox()
-    | TmString(_,s)             ->  pr "\"";pr s; pr"\""
-    | TmUnit(_)                 ->  pr "()" 
-    | TmLoc(fi,l)               ->  pr "<loc #"; pi l; pr">"
-    | TmFloat(_,f)              ->  print_float f
-    | TmZero(fi)                ->  pr "0"
     | TmSucc(_,t)               ->  let rec f n = function 
         | TmZero(_)                 -> pi n 
         | TmSucc(_,s)               -> f (n+1) s
         | _                         -> pr"(succ ";pr_ATerm false ctx t;pr")" in f 1 t
+    | TmIsZero(_,t)             ->  pr"iszero ";pr_ATerm false ctx t
+    | TmAscribe(_,t,tyT)        ->  pr_AppTerm outer ctx t
+    | TmTimesfloat(_,t1,t2)     ->  pr_AppTerm outer ctx t1;pr" *. ";pr_AppTerm outer ctx t2
+    | TmFix(_,t)                ->  pr"fix "   ;pr_ATerm false ctx t
+    | t                         ->  pr_PathTerm outer ctx t 
+
+and pr_PathTerm outer ctx   = function
+    | TmProj(_,t,l)             ->  pr_ATerm false ctx t; pr"."; pr l
+    | t                         ->  pr_ATerm outer ctx t
+
+and pr_ATerm outer ctx     = function 
+    | TmVar(fi,x,n)             -> let l = ctxlen ctx in 
+        if l = n 
+            then pr (index2name fi ctx x)
+            else (pr"[NameContext Error: ";pi l;pr"!=";pi n;pr" in { Γ:";pr(List.fold_left(fun s(x,_)->s^" "^x)""ctx);pr" }]")  
+    | TmTag(fi,l,t,tyT)         ->  obox(); 
+        pr"<";pr l;pr"=";pr_Term false ctx t;pr">";ps();pr" : ";pr_Type outer ctx tyT;  cbox()
+    | TmString(_,s)             ->  pr "\"";pr s; pr"\""
+    | TmFloat(_,f)              ->  print_float f
+    | TmUnit(_)                 ->  pr "()" 
+    | TmTrue(_)                 ->  pr "true"
+    | TmFalse(_)                ->  pr "false"
+    | TmZero(fi)                ->  pr "0"
+    | TmRecord(fi,flds)         ->  pr"{"; oobox0(); pr_flds pr_Term outer ctx 1 flds; pr "}"; cbox()
     | t                         ->  pr "("; pr_Term outer ctx t; pr ")"
 
 let pr_tm t = pr_Term true t 
@@ -401,12 +339,3 @@ let pr_ctx ctx =
         | ((str,bind)::rest)  -> pr" ( ";pr str;pr", ";pr_bind bind;pr" )";pn();f rest in 
     f ctx ; 
     pe "xxxxxxxxxxxxxxxxxxxxxxxxxxxxx"; pn()
-
-let pr_constr ctx constr = 
-    let pc (tyS,tyT)        = pr_Type false ctx tyS; pr"="; pr_Type false ctx tyT in 
-    let rec f               = function 
-        | []                    -> ()
-        | [c]                   -> (pc c)
-        | c::rest               -> (pc c; pr", "; f rest) in
-    pr"{"; f constr; pr"}";;
-

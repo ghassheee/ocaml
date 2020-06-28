@@ -2,10 +2,8 @@ open Format
 open Support.Pervasive
 open Support.Error
 open Syntax
-open Subtype
 
-val recon           : context -> uvargenerator -> term -> ty * uvargenerator * constr 
-val unify           : info -> context -> string -> constr -> constr 
-val apply_constr    : constr -> ty -> ty
+(* val tyeqv           : context -> ty -> ty -> bool *)
 val typeof          : context -> term -> ty
 val prbindty        : context -> bind -> unit 
+(* val simplifyty      : context -> ty -> ty *)

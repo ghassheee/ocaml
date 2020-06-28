@@ -1,13 +1,7 @@
 type token =
   | LOAD of (string  Support.Error.withinfo)
   | SHOWCONTEXT of (Support.Error.info)
-  | TYPE of (Support.Error.info)
-  | REC of (Support.Error.info)
-  | FOLD of (Support.Error.info)
-  | UNFOLD of (Support.Error.info)
   | TOP of (Support.Error.info)
-  | SOURCE of (Support.Error.info)
-  | SINK of (Support.Error.info)
   | REF of (Support.Error.info)
   | REFTYPE of (Support.Error.info)
   | LIST of (Support.Error.info)
@@ -89,4 +83,4 @@ type token =
 val toplevel :
   (Lexing.lexbuf  -> token) -> Lexing.lexbuf -> Syntax.context -> (Syntax.command list * Syntax.context)
 val input :
-  (Lexing.lexbuf  -> token) -> Lexing.lexbuf -> Syntax.context -> Eval.store -> Syntax.uvargenerator -> Syntax.constr -> (Syntax.command list * Syntax.context * Eval.store * Syntax.uvargenerator * Syntax.constr)
+  (Lexing.lexbuf  -> token) -> Lexing.lexbuf -> Syntax.context -> Eval.store -> (Syntax.command list * Syntax.context * Eval.store)
