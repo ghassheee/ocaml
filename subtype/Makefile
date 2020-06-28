@@ -14,13 +14,11 @@
 #                  .depend)
 
 # These are the object files needed to rebuild the main executable file
-OBJS = support.cmo syntax.cmo lexer.cmo type.cmo eval.cmo parser.cmo interpreter.cmo
+OBJS = support.cmo syntax.cmo lexer.cmo subtype.cmo type.cmo eval.cmo parser.cmo interpreter.cmo
 
 # Files that need to be generated from other files
 DEPEND += lexer.ml parser.ml   
 
-# When "make" is invoked with no arguments, we build an executable 
-# typechecker, after building everything that it depends on
 all: $(DEPEND) $(OBJS) f g 
 
 # Include an automatically generated list of dependencies between source files

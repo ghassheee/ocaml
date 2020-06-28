@@ -18,14 +18,14 @@ parser.cmo : type.cmi syntax.cmo support.cmi interpreter.cmo eval.cmi \
 parser.cmx : type.cmx syntax.cmx support.cmx interpreter.cmx eval.cmx \
     parser.cmi
 parser.cmi : syntax.cmo support.cmi eval.cmi
-print.cmo : syntax.cmo support.cmi
-print.cmx : syntax.cmx support.cmx
+subtype.cmo :
+subtype.cmx :
 support.cmo : support.cmi
 support.cmx : support.cmi
 support.cmi :
 syntax.cmo : support.cmi
 syntax.cmx : support.cmx
 syntax_.cmi : support.cmi
-type.cmo : syntax.cmo support.cmi type.cmi
-type.cmx : syntax.cmx support.cmx type.cmi
+type.cmo : syntax.cmo support.cmi subtype.cmo type.cmi
+type.cmx : syntax.cmx support.cmx subtype.cmx type.cmi
 type.cmi : syntax.cmo support.cmi
