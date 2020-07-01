@@ -15,7 +15,7 @@ let updatestore store n v   =
     let rec f s = match s with
         | (0,x::xs)                 -> v::xs
         | (n,x::xs)                 -> v::(f(n-1,xs))
-        | _                         -> error dummyinfo "updatestore: BadIndex" in 
+        | _                         -> error dummy "updatestore: BadIndex" in 
     f (n,store) 
 let shiftstore i            = List.map (tmShift i) 
 
@@ -30,15 +30,9 @@ let rec evalF1 ctx store = function
 and eval1 ctx store t = let p str = pr str;pr_tm ctx t;pn() in match t with  
     | TmFix(fi,TmAbs(f,x,tyT1,t2))      ->  p"E-FIXBETA     : "; tmSubstTop t t2,store
     | TmFix(fi,t)                       ->  p"E-FIX         : "; let t',s'=eval1 ctx store t in TmFix(fi,t'),s' 
-    | TmTag(fi,l,t,tyT)                 ->  p"E-TAG         : "; let t',s'=eval1 ctx store t in TmTag(fi,l,t',tyT),s'
     | TmVar(fi,n,_)                     ->  p"E-VAR         : "; (match getbind fi ctx n with
         | BindTmAbb(t,_)                    -> t,store
         | _                                 -> raise NoRuleApplies) 
-    | TmCase(fi,TmTag(_,l,v,_),cases) when isval ctx v  ->  
-                                            p"E-CASETAGV    : ";
-                                            (try let (x,t)= List.assoc l cases in  tmSubstTop v t,store
-                                            with Not_found -> raise NoRuleApplies)
-    | TmCase(fi,t,cases)                ->  p"E-CASE        : "; let t',s'=eval1 ctx store t in TmCase(fi,t',cases),s'
     | TmAscribe(fi,v,_)when isval ctx v ->  p"E-ASCRIBEVAR  : "; v,store
     | TmAscribe(fi,t,tyT)               ->  p"E-ASCRIBE     : "; let t',s'=eval1 ctx store t in TmAscribe(fi,t',tyT),s' 
     | TmLet(fi,x,v1,t2)when isval ctx v1->  p"E-LETV        : "; tmSubstTop v1 t2, store
@@ -52,14 +46,14 @@ and eval1 ctx store t = let p str = pr str;pr_tm ctx t;pn() in match t with
     | TmIf(_,TmFalse(_),t2,t3)          ->  p"E-IFFLASE     : "; t3, store
     | TmIf(fi,t,t2,t3)                  ->  p"E-IF          : "; let t',s'=eval1 ctx store t in TmIf(fi,t',t2,t3),s'
     | TmSucc(fi,t)                      ->  p"E-SUCC        : "; let t',s'=eval1 ctx store t in TmSucc(fi,t'),s'
-    | TmPred(_,TmZero(_))               ->  p"E-PREDZRO     : "; TmZero(dummyinfo),store
+    | TmPred(_,TmZero(_))               ->  p"E-PREDZRO     : "; TmZero(dummy),store
     | TmPred(_,TmSucc(_,nv1)) 
         when isnum ctx nv1              ->  p"E-PREDSUC     : "; nv1, store
     | TmPred(fi,t)                      ->  p"E-PRED        : "; let t',s'=eval1 ctx store t in TmPred(fi,t'),s'
-    | TmIsZero(_,TmZero(_))             ->  p"E-ISZROZRO    : "; TmTrue(dummyinfo),store
+    | TmIsZero(_,TmZero(_))             ->  p"E-ISZROZRO    : "; TmTrue(dummy),store
     | TmTimesfloat(fi,_,_)              ->  p"E-TIMESFLOAT  : "; evalF1 ctx store t 
     | TmIsZero(_,TmSucc(_,nv1)) 
-        when isnum ctx nv1              ->  p"E-ISZROSUC    : "; TmFalse(dummyinfo),store
+        when isnum ctx nv1              ->  p"E-ISZROSUC    : "; TmFalse(dummy),store
     | TmIsZero(fi,t)                    ->  p"E-ISZRO       : "; let t',s'=eval1 ctx store t in TmIsZero(fi,t'),s'
     | TmRecord(fi,flds)                 ->  p"E-RCD         : "; 
         let rec ev_flds ctx store = function

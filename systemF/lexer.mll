@@ -29,7 +29,7 @@ let reservedWords = [
     ("let",     fun i -> Parser.LET i);
     ("Bool",    fun i -> Parser.BOOL i);
     ("Nat",     fun i -> Parser.NAT i);
-    ("\\",      fun i -> Parser.LAMBDA i);
+    ("\\",      fun i -> Parser.LAM i);
     ("if",      fun i -> Parser.IF i);
     ("then",    fun i -> Parser.THEN i);
     ("else",    fun i -> Parser.ELSE i);
@@ -98,7 +98,7 @@ let lineno                  =   ref 1
 and depth                   =   ref 0
 and start                   =   ref 0
 and filename                =   ref ""
-and startLex                =   ref dummyinfo
+and startLex                =   ref dummy
 let create inFile stream    =   if not(Filename.is_implicit inFile) 
                                     then filename   := inFile
                                     else filename   := Filename.concat (Sys.getcwd()) inFile;

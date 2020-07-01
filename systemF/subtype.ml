@@ -7,11 +7,11 @@ exception NoRuleApplies
 
 
 (* ---------------------------------- *) 
-let istyabb ctx i           = match getbind dummyinfo ctx i with 
+let istyabb ctx i           = match getbind dummy ctx i with 
     | BindTyAbb(_)                  -> true
     | _                             -> false
 
-let gettyabb ctx i          = match getbind dummyinfo ctx i with 
+let gettyabb ctx i          = match getbind dummy ctx i with 
     | BindTyAbb(tyT)                -> tyT
     | _                             -> raise NoRuleApplies 
 

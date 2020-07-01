@@ -16,25 +16,6 @@ let rec typeof ctx   t      =
                                                 then tyT 
                                                 else error fi"fix can take 'x' whose type: A -> A" 
         | _                             -> error fi"fix can only take x whose type is A -> A"  )
-    | TmTag(fi,l,t1,(TyVariant(fTs)as tyT)) ->  
-                                    p"T-VARIANT     "; let tyT1 = typeof ctx t1 in
-                                    if tyeqv ctx tyT1(List.assoc l fTs)
-                                        then tyT 
-                                        else error fi "Variant Type Mismatch"
-    | TmCase(fi,t1,cases)       ->  p"T-CASE        "; (match simplifyty ctx(typeof ctx t1) with 
-        | TyVariant(fTs)                ->  let findTypeInVariant (li,(xi,ti))  =   
-                                                try List.assoc li fTs
-                                                with Not_found -> error fi ("label "^li^"not found") in 
-                                            List.iter (fun c -> findTypeInVariant c;()) cases;
-                                            let typeofcase (li,(xi,ti)) = 
-                                                let tyTi =  findTypeInVariant (li,(xi,ti)) in 
-                                                tyShift(-1)(typeof(addbind ctx xi(BindTmVar(tyTi)))ti) in 
-                                            let caseTys  = List.map typeofcase cases in 
-                                            let theCaseTy::rest = caseTys in
-                                            let checkTypeIsEquiv2theCaseTy tyT =   
-                                                if tyeqv ctx tyT theCaseTy then()else error fi "fldsTyErr" in 
-                                            List.iter checkTypeIsEquiv2theCaseTy rest; theCaseTy   
-            | _                         ->  error fi "Expected variant type")
     | TmFloat(fi,f)             ->  p"T-FLOAT       "; TyFloat
     | TmTimesfloat(fi,t1,t2)    ->  p"T-TIMESFLOAT  "; 
                                     if tyeqv ctx TyFloat(typeof ctx t1) && tyeqv ctx TyFloat(typeof ctx t2) 

@@ -24,6 +24,9 @@ type ty     =
 ;;
 
 type term =
+    (* Quantifier *) 
+    | TmPack        of info * ty * term * ty 
+    | TmUnpack      of info * string * string * term * term 
     | TmTAbs        of info * string * term
     | TmTApp        of info * term * ty 
     (* Fix *)
@@ -32,9 +35,6 @@ type term =
     | TmString      of info * string 
     | TmFloat       of info * float
     | TmTimesfloat  of info * term * term 
-    (* Variant *)
-    | TmTag         of info * string * term * ty 
-    | TmCase        of info * term * (string * (string * term)) list (* (label*(var*term) list *) 
     (* Record *)
     | TmProj        of info * term * string  
     | TmRecord      of info * (string * term) list 
@@ -48,15 +48,15 @@ type term =
     | TmVar         of info * int * int 
     | TmAbs         of info * string * ty * term 
     | TmApp         of info * term * term 
+    (* Bool *) 
+    | TmTrue        of info
+    | TmFalse       of info
+    | TmIf          of info * term * term * term
     (* Arith *) 
     | TmZero        of info
     | TmSucc        of info * term
     | TmPred        of info * term
     | TmIsZero      of info * term
-    (* Bool *) 
-    | TmTrue        of info
-    | TmFalse       of info
-    | TmIf          of info * term * term * term
 ;;
 
 type bind = 
@@ -65,7 +65,6 @@ type bind =
     | BindTmVar     of ty
     | BindTyAbb     of ty 
     | BindTmAbb     of term * (ty option) 
-
 ;;
 
 type context =      (string * bind) list 
@@ -109,11 +108,12 @@ let rec tyWalk onVar c          = let f = onVar in function
     | TyVariant(fieldtys)       -> TyVariant(List.map (fun(l,tyT)->(l,tyWalk f c tyT)) fieldtys) 
     | TyRecord(fieldtys)        -> TyRecord(List.map (fun(l,tyT)->(l,tyWalk f c tyT)) fieldtys) 
     | TyArr(tyT1,tyT2)          -> TyArr(tyWalk f c tyT1,tyWalk f c tyT2) 
+    | TyAll(tyX,tyT)            -> TyAll(tyX, tyWalk f(c+1)tyT)
+    | TySome(tyX,tyT)           -> TySome(tyX, tyWalk f(c+1)tyT)
     | tyT                       -> tyT
 
 let rec tmWalk onVar onType c   = let (f,g) = (onVar,onType) in function 
     | TmVar(fi,x,n)             -> onVar fi c x n
-    | TmCase(fi,t,cases)        -> TmCase(fi,tmWalk f g c t,List.map(fun(li,(xi,ti))->li,(xi,tmWalk f g(c+1)ti))cases)
     | TmLet(fi,x,t1,t2)         -> TmLet(fi,x,tmWalk f g c t1, tmWalk f g(c+1)t2) 
     | TmAbs(fi,x,tyT,t2)        -> TmAbs(fi,x,g c tyT,tmWalk f g(c+1)t2)
     | TmApp(fi,t1,t2)           -> TmApp(fi,tmWalk f g c t1, tmWalk f g c t2) 
@@ -127,13 +127,13 @@ let rec tmWalk onVar onType c   = let (f,g) = (onVar,onType) in function
     | TmFix(fi,t)               -> TmFix(fi,tmWalk f g c t)
     | x                         -> x
 
-let tyShiftOnVar d          = fun c x n     ->  if x>=c then TyVar(x+d,n+d)     else TyVar(x,n+d) 
+let tyShiftOnVar d          = fun c x n     ->  if x>=c then TyVar(x+d,n+d)    else TyVar(x,n+d) 
 let tyShiftAbove d          = tyWalk (tyShiftOnVar d) 
-let tyShift d               = (*if d>=0 then pe("TYVARSHIFT    : "^(soi d));*)tyShiftAbove d 0    
+let tyShift d               = tyShiftAbove d 0    
 
-let tmShiftOnVar d          = fun fi c x n  ->  if x>=c then TmVar(fi,x+d,n+d)  else TmVar(fi,x,n+d)
+let tmShiftOnVar d          = fun fi c x n  ->  if x>=c then TmVar(fi,x+d,n+d) else TmVar(fi,x,n+d)
 let tmShiftAbove d          = tmWalk (tmShiftOnVar d) (tyShiftAbove d) 
-let tmShift d               = (*if d>=0 then pe("TMVARSHIFT    : "^(soi d));*)tmShiftAbove d 0 
+let tmShift d               = tmShiftAbove d 0 
 
 let bindshift d             = function 
     | BindTyAbb(tyT)            ->  BindTyAbb(tyShift d tyT) 
@@ -173,8 +173,6 @@ let tmInfo  = function
     | TmAscribe(fi,_,_)     -> fi 
     | TmRecord(fi,_)        -> fi
     | TmProj(fi,_,_)        -> fi 
-    | TmTag(fi,_,_,_)       -> fi
-    | TmCase(fi,_,_)        -> fi 
     | TmString(fi,_)        -> fi 
     | TmFloat(fi,_)         -> fi
     | TmTimesfloat(fi,_,_)  -> fi 
@@ -204,7 +202,6 @@ let rec isval ctx   = function
     | TmTrue(_)                     -> true
     | TmFalse(_)                    -> true
     | TmRecord(_,flds)              -> List.for_all (fun(_,t)->isval ctx t) flds 
-    | TmTag(_,_,t,_)                -> isval ctx t
     | TmString(_,_)                 -> true
     | TmFloat(_,_)                  -> true
     | t when isnum ctx t            -> true
@@ -255,7 +252,7 @@ and pr_AType outer ctx      = function
     | TyNat                     ->  pr "𝐍"
     | TyUnit                    ->  pr "𝐔"
     | TyId(s)                   ->  pr s
-    | TyVar(i,n)                ->  if ctxlen ctx = n then pr(index2name dummyinfo ctx i)else pr"[BadIndex]"  
+    | TyVar(i,n)                ->  if ctxlen ctx=n then pr(index2name dummy ctx i)else pr"[BadIndex]"  
     | TyVariant(flds)           ->  pr"<"; oobox0(); pr_fldtys pr_Type outer ctx 1 flds; pr">"; cbox()
     | TyRecord(flds)            ->  pr"{"; oobox0(); pr_fldtys pr_Type outer ctx 1 flds; pr"}"; cbox()
     | tyT                       ->  pr"("; pr_Type outer ctx tyT; pr ")"
@@ -275,8 +272,6 @@ let rec pr_cases prTm outer ctx =
 (* -------------------------------------------------- *) 
 (* Term Print *)
 let rec pr_Term outer ctx  = function 
-    | TmCase(_,t,cases)         ->  obox();
-        pr"case ";pr_Term false ctx t;pr" of";ps();pr_cases pr_Term outer ctx cases;  cbox()
     | TmLet(_,x,t1,t2)          ->  obox0();
         pr"let ";pr x;pr" = ";pr_Term false ctx t1;ps();pr"in";ps();pr_Term false(addname ctx x)t2;   cbox()
     | TmAbs(_,x,tyT1,t2)        ->  let (ctx',x')=pickfresh ctx x in obox();
@@ -309,8 +304,6 @@ and pr_ATerm outer ctx     = function
         if l = n 
             then pr (index2name fi ctx x)
             else (pr"[NameContext Error: ";pi l;pr"!=";pi n;pr" in { Γ:";pr(List.fold_left(fun s(x,_)->s^" "^x)""ctx);pr" }]")  
-    | TmTag(fi,l,t,tyT)         ->  obox(); 
-        pr"<";pr l;pr"=";pr_Term false ctx t;pr">";ps();pr" : ";pr_Type outer ctx tyT;  cbox()
     | TmString(_,s)             ->  pr "\"";pr s; pr"\""
     | TmFloat(_,f)              ->  print_float f
     | TmUnit(_)                 ->  pr "()" 

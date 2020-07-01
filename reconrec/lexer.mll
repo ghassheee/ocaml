@@ -35,7 +35,7 @@ let reservedWords = [
     ("let",     fun i -> Parser.LET i);
     ("Bool",    fun i -> Parser.BOOL i);
     ("Nat",     fun i -> Parser.NAT i);
-    ("\\",      fun i -> Parser.LAMBDA i);
+    ("\\",      fun i -> Parser.LAM i);
     ("if",      fun i -> Parser.IF i);
     ("then",    fun i -> Parser.THEN i);
     ("else",    fun i -> Parser.ELSE i);

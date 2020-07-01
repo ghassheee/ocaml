@@ -15,7 +15,7 @@ module Error = struct
     type info               =   FI of string * int * int | UNKNOWN
     type 'a withinfo        =   {i: info; v: 'a}
 
-    let dummyinfo           =   UNKNOWN
+    let dummy               =   UNKNOWN
     let createInfo f l c    =   FI(f, l, c)
     let errf f              =   print_flush(); 
         open_vbox 0; open_hvbox 0; f(); cut(); 
