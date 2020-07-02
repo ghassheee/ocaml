@@ -1,5 +1,4 @@
 open Format
-open Core
 open Support.Pervasive
 open Support.Error
 open Syntax
@@ -48,7 +47,7 @@ let rec eval ctx t =
 let rec process_command ctx = function 
     | Eval(fi,t)                ->  
             let tyT = typeof ctx t in 
-            printtm_ATerm true ctx (eval ctx t); 
+            printtm_ATm true ctx (eval ctx t); 
             print_break 1 2; pr ": "; printty tyT; force_newline(); ctx
     | Bind(fi,x,bind)           ->  pr ("Now, "^x^ " is a variable: "); prbindingty ctx bind; force_newline(); addbinding ctx x bind 
 

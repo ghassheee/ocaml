@@ -2,21 +2,17 @@ open Format
 open Support.Error
 open Support.Pervasive
 
-
 (* -------------------------------------------------- *) 
 (* Datatypes *)
 
 type ty     =
     | TyArr of ty * ty
     | TyBool
-;;
 
 type term =
-    (* Lambda *) 
     | TmVar of info * int * int 
     | TmAbs of info * string * ty * term 
     | TmApp of info * term * term 
-    (* Arith *) 
     | TmTrue    of info
     | TmFalse   of info
     | TmIf      of info * term * term * term
@@ -24,21 +20,17 @@ type term =
     | TmSucc    of info * term
     | TmPred    of info * term
     | TmIsZero  of info * term
-;;
 
 type binding = 
     | NameBind
     | VarBind of ty
-;;
 
 type context = 
     (string * binding) list 
-;;
 
 type command =
     | Eval of info * term
     | Bind of info * string * binding 
-;;
 
 
 (* -------------------------------------------------- *) 
@@ -77,7 +69,7 @@ let getTypeFromContext fi ctx i = match getbinding fi ctx i with
 
 let rec walk funOnVar c   = print_endline "walk";let f = funOnVar in function 
     | TmVar(fi,x,n)             -> funOnVar fi c x n
-    | TmAbs(fi,x,tyT,t2)            -> TmAbs(fi,x,tyT,walk f(c+1)t2)
+    | TmAbs(fi,x,tyT,t2)        -> TmAbs(fi,x,tyT,walk f(c+1)t2)
     | TmApp(fi,t1,t2)           -> TmApp(fi, walk f c t1, walk f c t2) 
     | TmIf(fi,t1,t2,t3)         -> TmIf(fi,walk f c t1, walk f c t2, walk f c t3) 
     | TmSucc(fi,t)              -> TmSucc(fi, walk f c t) 
@@ -99,7 +91,7 @@ let termSubstTop s t        = termShift (-1) (termSubst 0 (termShift 1 s) t)
 (* Extracting file info *)
 let tmInfo  = function 
     | TmVar(fi,_,_)         -> fi
-    | TmAbs(fi,_,_,_)         -> fi
+    | TmAbs(fi,_,_,_)       -> fi
     | TmApp(fi,_,_)         -> fi 
     | TmTrue(fi)            -> fi
     | TmFalse(fi)           -> fi
@@ -135,26 +127,26 @@ and printty_AType outer         = function
 
 let printty tyT                 = printty_Type true tyT
 
-let rec printtm_Term outer ctx  = function 
+let rec printtm_Tm outer ctx  = function 
     | TmAbs(fi,x,tyT1,t2)            ->  let (ctx',x') = pickfreshname ctx x in obox();
         pr "lambda "; pr x'; pr ":"; printty_Type false tyT1; pr "."; 
         if (small t2) && not outer then break() else ps();
-        printtm_Term outer ctx' t2;
+        printtm_Tm outer ctx' t2;
         cbox()
     | TmIf(fi, t1, t2, t3)      ->  obox0();
-        pr "if "  ; printtm_Term false ctx t1; ps();
-        pr "then "; printtm_Term false ctx t2; ps();
-        pr "else "; printtm_Term false ctx t3;
+        pr "if "  ; printtm_Tm false ctx t1; ps();
+        pr "then "; printtm_Tm false ctx t2; ps();
+        pr "else "; printtm_Tm false ctx t3;
         cbox()
-    | t                         -> printtm_AppTerm outer ctx t
-and printtm_AppTerm outer ctx   = function 
-    | TmApp(fi, t1, t2)         ->  obox0(); printtm_AppTerm false ctx t1; ps(); 
-                                    printtm_ATerm false ctx t2; cbox();
-    | TmPred(_,t1)              ->  pr "pred ";     printtm_ATerm false ctx t1
-    | TmIsZero(_,t1)            ->  pr "iszero ";   printtm_ATerm false ctx t1
-    | t                         ->  printtm_ATerm outer ctx t
+    | t                         -> printtm_AppTm outer ctx t
+and printtm_AppTm outer ctx   = function 
+    | TmApp(fi, t1, t2)         ->  obox0(); printtm_AppTm false ctx t1; ps(); 
+                                    printtm_ATm false ctx t2; cbox();
+    | TmPred(_,t1)              ->  pr "pred ";     printtm_ATm false ctx t1
+    | TmIsZero(_,t1)            ->  pr "iszero ";   printtm_ATm false ctx t1
+    | t                         ->  printtm_ATm outer ctx t
 
-and printtm_ATerm outer ctx     = function 
+and printtm_ATm outer ctx     = function 
     | TmVar(fi,x,n)             -> if ctxlength ctx = n 
         then pr (index2name fi ctx x)
         else pr ("[bad index: " ^ (string_of_int x) ^ "/" ^ (string_of_int n) ^ " in {" 
@@ -165,10 +157,10 @@ and printtm_ATerm outer ctx     = function
     | TmSucc(_,t1)              ->  let rec f n = function 
         | TmZero(_)                 -> pr (string_of_int n)
         | TmSucc(_,s)               -> f (n+1) s
-        | _                         -> (pr "(succ "; printtm_ATerm false ctx t1; pr ")")
+        | _                         -> (pr "(succ "; printtm_ATm false ctx t1; pr ")")
     in f 1 t1
-    | t                         ->  pr "("; printtm_Term outer ctx t; pr ")"
+    | t                         ->  pr "("; printtm_Tm outer ctx t; pr ")"
 
-let printtm t = printtm_Term true t 
+let printtm t = printtm_Tm true t 
 
 
