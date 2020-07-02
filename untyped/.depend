@@ -1,0 +1,17 @@
+eval.cmo : syntax.cmo support.cmi eval.cmi
+eval.cmx : syntax.cmx support.cmx eval.cmi
+eval.cmi : syntax.cmo support.cmi
+imain.cmo : syntax.cmo support.cmi parser.cmi lexer.cmo
+imain.cmx : syntax.cmx support.cmx parser.cmx lexer.cmx
+lexer.cmo : support.cmi parser.cmi
+lexer.cmx : support.cmx parser.cmx
+main.cmo : syntax.cmo support.cmi parser.cmi lexer.cmo
+main.cmx : syntax.cmx support.cmx parser.cmx lexer.cmx
+parser.cmo : syntax.cmo support.cmi eval.cmi parser.cmi
+parser.cmx : syntax.cmx support.cmx eval.cmx parser.cmi
+parser.cmi : syntax.cmo support.cmi
+support.cmo : support.cmi
+support.cmx : support.cmi
+support.cmi :
+syntax.cmo : support.cmi
+syntax.cmx : support.cmx
