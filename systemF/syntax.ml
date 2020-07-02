@@ -112,7 +112,7 @@ let rec tyWalk onVar c          = let f = onVar in function
     | TySome(tyX,tyT)           -> TySome(tyX, tyWalk f(c+1)tyT)
     | tyT                       -> tyT
 
-let rec tmWalk onVar onType c   = let (f,g) = (onVar,onType) in function 
+let rec tmWalk onVar onTy c   = let (f,g) = (onVar,onTy) in function 
     | TmVar(fi,x,n)             -> onVar fi c x n
     | TmLet(fi,x,t1,t2)         -> TmLet(fi,x,tmWalk f g c t1, tmWalk f g(c+1)t2) 
     | TmAbs(fi,x,tyT,t2)        -> TmAbs(fi,x,g c tyT,tmWalk f g(c+1)t2)
@@ -234,17 +234,17 @@ let rec pr_flds prTm outer ctx i =
 
 (* -------------------------------------------------- *) 
 (* Type Print *) 
-let rec pr_Type outer ctx   = function
-    | tyT                       ->  pr_ArrowType outer ctx tyT
+let rec pr_Ty outer ctx   = function
+    | tyT                       ->  pr_ArrowTy outer ctx tyT
 
-and pr_ArrowType outer ctx  = function
+and pr_ArrowTy outer ctx  = function
     | TyArr(tyT1,tyT2)          ->  obox0(); 
-                                    pr_AType false ctx tyT1;
-                                    if outer then pr" ";pr "→";psbr outer;pr_AType outer ctx tyT2; 
+                                    pr_ATy false ctx tyT1;
+                                    if outer then pr" ";pr "→";psbr outer;pr_ATy outer ctx tyT2; 
                                     cbox()
-    | tyT                       ->  pr_AType outer ctx tyT
+    | tyT                       ->  pr_ATy outer ctx tyT
 
-and pr_AType outer ctx      = function
+and pr_ATy outer ctx      = function
 
     | TyFloat                   ->  pr "𝐅"  
     | TyString                  ->  pr "𝐒" 
@@ -253,12 +253,12 @@ and pr_AType outer ctx      = function
     | TyUnit                    ->  pr "𝐔"
     | TyId(s)                   ->  pr s
     | TyVar(i,n)                ->  if ctxlen ctx=n then pr(index2name dummy ctx i)else pr"[BadIndex]"  
-    | TyVariant(flds)           ->  pr"<"; oobox0(); pr_fldtys pr_Type outer ctx 1 flds; pr">"; cbox()
-    | TyRecord(flds)            ->  pr"{"; oobox0(); pr_fldtys pr_Type outer ctx 1 flds; pr"}"; cbox()
-    | tyT                       ->  pr"("; pr_Type outer ctx tyT; pr ")"
+    | TyVariant(flds)           ->  pr"<"; oobox0(); pr_fldtys pr_Ty outer ctx 1 flds; pr">"; cbox()
+    | TyRecord(flds)            ->  pr"{"; oobox0(); pr_fldtys pr_Ty outer ctx 1 flds; pr"}"; cbox()
+    | tyT                       ->  pr"("; pr_Ty outer ctx tyT; pr ")"
 ;;
 
-let pr_ty ctx tyT               = pr_Type true ctx tyT
+let pr_ty ctx tyT               = pr_Ty true ctx tyT
 
 
 let rec pr_cases prTm outer ctx = 
@@ -270,50 +270,50 @@ let rec pr_cases prTm outer ctx =
     | c::rest   -> pr"| ";pr_case c;ps();pr_cases prTm outer ctx rest
 
 (* -------------------------------------------------- *) 
-(* Term Print *)
-let rec pr_Term outer ctx  = function 
+(* Tm Print *)
+let rec pr_Tm outer ctx  = function 
     | TmLet(_,x,t1,t2)          ->  obox0();
-        pr"let ";pr x;pr" = ";pr_Term false ctx t1;ps();pr"in";ps();pr_Term false(addname ctx x)t2;   cbox()
+        pr"let ";pr x;pr" = ";pr_Tm false ctx t1;ps();pr"in";ps();pr_Tm false(addname ctx x)t2;   cbox()
     | TmAbs(_,x,tyT1,t2)        ->  let (ctx',x')=pickfresh ctx x in obox();
-        pr"λ";pr x';pr":";pr_Type false ctx tyT1;pr".";psbr((not(small t2))||outer);pr_Term outer ctx' t2;  cbox()
+        pr"λ";pr x';pr":";pr_Ty false ctx tyT1;pr".";psbr((not(small t2))||outer);pr_Tm outer ctx' t2;  cbox()
     | TmIf(_, t1, t2, t3)       ->  obox0();
-        pr"if "  ;pr_Term false ctx t1;ps();
-        pr"then ";pr_Term false ctx t2;ps();
-        pr"else ";pr_Term false ctx t3;      cbox()
-    | t                         -> pr_AppTerm outer ctx t
+        pr"if "  ;pr_Tm false ctx t1;ps();
+        pr"then ";pr_Tm false ctx t2;ps();
+        pr"else ";pr_Tm false ctx t3;      cbox()
+    | t                         -> pr_AppTm outer ctx t
 
-and pr_AppTerm outer ctx   = function 
-    | TmApp(_, t1, t2)          ->  obox0();  pr_AppTerm false ctx t1;ps();pr_ATerm false ctx t2;  cbox();
-    | TmPred(_,t)               ->  pr"pred "  ;pr_ATerm false ctx t
+and pr_AppTm outer ctx   = function 
+    | TmApp(_, t1, t2)          ->  obox0();  pr_AppTm false ctx t1;ps();pr_ATm false ctx t2;  cbox();
+    | TmPred(_,t)               ->  pr"pred "  ;pr_ATm false ctx t
     | TmSucc(_,t)               ->  let rec f n = function 
         | TmZero(_)                 -> pi n 
         | TmSucc(_,s)               -> f (n+1) s
-        | _                         -> pr"(succ ";pr_ATerm false ctx t;pr")" in f 1 t
-    | TmIsZero(_,t)             ->  pr"iszero ";pr_ATerm false ctx t
-    | TmAscribe(_,t,tyT)        ->  pr_AppTerm outer ctx t
-    | TmTimesfloat(_,t1,t2)     ->  pr_AppTerm outer ctx t1;pr" *. ";pr_AppTerm outer ctx t2
-    | TmFix(_,t)                ->  pr"fix "   ;pr_ATerm false ctx t
-    | t                         ->  pr_PathTerm outer ctx t 
+        | _                         -> pr"(succ ";pr_ATm false ctx t;pr")" in f 1 t
+    | TmIsZero(_,t)             ->  pr"iszero ";pr_ATm false ctx t
+    | TmAscribe(_,t,tyT)        ->  pr_AppTm outer ctx t
+    | TmTimesfloat(_,t1,t2)     ->  pr_AppTm outer ctx t1;pr" *. ";pr_AppTm outer ctx t2
+    | TmFix(_,t)                ->  pr"fix "   ;pr_ATm false ctx t
+    | t                         ->  pr_PathTm outer ctx t 
 
-and pr_PathTerm outer ctx   = function
-    | TmProj(_,t,l)             ->  pr_ATerm false ctx t; pr"."; pr l
-    | t                         ->  pr_ATerm outer ctx t
+and pr_PathTm outer ctx   = function
+    | TmProj(_,t,l)             ->  pr_ATm false ctx t; pr"."; pr l
+    | t                         ->  pr_ATm outer ctx t
 
-and pr_ATerm outer ctx     = function 
+and pr_ATm outer ctx     = function 
     | TmVar(fi,x,n)             -> let l = ctxlen ctx in 
-        if l = n 
-            then pr (index2name fi ctx x)
-            else (pr"[NameContext Error: ";pi l;pr"!=";pi n;pr" in { Γ:";pr(List.fold_left(fun s(x,_)->s^" "^x)""ctx);pr" }]")  
+                                    if l=n  then pr (index2name fi ctx x)
+                                            else (pr"[NameContext Error: ";pi l;pr"!=";pi n;pr" in { Γ:";
+                                                  pr(List.fold_left(fun s(x,_)->s^" "^x)""ctx);pr" }]")  
     | TmString(_,s)             ->  pr "\"";pr s; pr"\""
     | TmFloat(_,f)              ->  print_float f
     | TmUnit(_)                 ->  pr "()" 
     | TmTrue(_)                 ->  pr "true"
     | TmFalse(_)                ->  pr "false"
     | TmZero(fi)                ->  pr "0"
-    | TmRecord(fi,flds)         ->  pr"{"; oobox0(); pr_flds pr_Term outer ctx 1 flds; pr "}"; cbox()
-    | t                         ->  pr "("; pr_Term outer ctx t; pr ")"
+    | TmRecord(fi,flds)         ->  pr"{"; oobox0(); pr_flds pr_Tm outer ctx 1 flds; pr "}"; cbox()
+    | t                         ->  pr "("; pr_Tm outer ctx t; pr ")"
 
-let pr_tm t = pr_Term true t 
+let pr_tm t = pr_Tm true t 
 
 
 

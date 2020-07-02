@@ -112,7 +112,7 @@ let pe = print_endline
 %token <Support.Error.info> USCORE
 %token <Support.Error.info> VBAR
 %token <Support.Error.info> NEWLINE
-%token <Support.Error.info> DOUBLESEMI
+%token <Support.Error.info> DSEMI
 /* The returned type of a toplevel is Syntax.command list. */
 %start toplevel
 %start input 
@@ -126,17 +126,15 @@ let pe = print_endline
 
 input :   /* Left Recursion */
     |                                   { fun _ _   ->  [],emptyctx,emptystore                      }
-    | input LOAD                        { let file          = $2.v in 
-                                          fun ctx s ->  [],ctx,s                                    }  
-    | input SHOWCONTEXT DOUBLESEMI      { let _,ctx',s'     = $1 [] emptystore in pr_ctx ctx';
+    | input SHOWCONTEXT DSEMI           { let _,ctx',s'     = $1 [] emptystore in pr_ctx ctx';
                                           fun _ _   ->  [],ctx',s'                                  }  
-    | input DOUBLESEMI                  { fun ctx s ->  [],ctx,s                                    } 
+    | input DSEMI                       { fun ctx s ->  [],ctx,s                                    } 
     | input oneREPL                     { let _,ev_ctx,s    = $1 [] emptystore in   
                                           let cmds,_        = $2 ev_ctx in 
                                           let ev_ctx',s'    = process_commands ev_ctx s cmds in 
                                           fun _ _   ->  [],ev_ctx',s'                               } 
 oneREPL : 
-    | Command DOUBLESEMI                { fun ctx ->  let cmd,ctx'    = $1 ctx in [cmd],ctx'        } 
+    | Command DSEMI                     { fun ctx ->  let cmd,ctx'    = $1 ctx in [cmd],ctx'        } 
     | Command SEMI oneREPL              { fun ctx ->  let cmd,ctx'    = $1 ctx in 
                                                       let cmds,ctx''  = $3 ctx' in cmd::cmds,ctx''  }
 
@@ -181,16 +179,16 @@ ATy       :
     | BOOL                              { fun ctx ->  TyBool                                        } 
     | NAT                               { fun ctx ->  TyNat                                         }
     | UNITTYPE                          { fun ctx ->  TyUnit                                        } 
-    | LCURLY TyFields RCURLY            { fun ctx ->  TyRecord($2 ctx 1)                            }
+    | LCURLY TyFlds RCURLY              { fun ctx ->  TyRecord($2 ctx 1)                            }
 
 
-TyFields    :
+TyFlds    :
     | /* Empty Ty */                    { fun ctx ->  fun i -> []                                   } 
-    | NETyFields                        { $1                                                        }
-NETyFields  :
-    | TyField                           { fun ctx ->  fun i -> [$1 ctx i]                           }
-    | TyField COMMA NETyFields          { fun ctx ->  fun i -> ($1 ctx i)::($3 ctx (i+1))           }
-TyField     : 
+    | NETyFlds                          { $1                                                        }
+NETyFlds  :
+    | TyFld                             { fun ctx ->  fun i -> [$1 ctx i]                           }
+    | TyFld COMMA NETyFlds              { fun ctx ->  fun i -> ($1 ctx i)::($3 ctx (i+1))           }
+TyFld     : 
     | LCID COLON Ty                     { fun ctx ->  fun i -> ($1.v, $3 ctx)                       } 
     | Ty                                { fun ctx ->  fun i -> (string_of_int i, $1 ctx)            } 
 
@@ -229,7 +227,7 @@ AscribeTm :
     | ATm                               { $1                                                        }
 ATm       :                       
     | LPAREN TmSeq RPAREN               { $2                                                        }
-    | LCURLY Fields RCURLY              { fun ctx ->  TmRecord($1,$2 ctx 1)                         }
+    | LCURLY Flds RCURLY                { fun ctx ->  TmRecord($1,$2 ctx 1)                         }
     | LCID                              { fun ctx ->  TmVar($1.i,name2index $1.i ctx $1.v,ctxlen ctx)}
     | STRINGV                           { fun ctx ->  TmString($1.i,$1.v)                           }
     | FLOATV                            { fun ctx ->  TmFloat($1.i,$1.v)                            }
@@ -243,12 +241,12 @@ TmSeq     :
     | Tm                                { $1                                                        } 
     | Tm SEMI TmSeq                     { fun ctx ->  TmApp($2,TmAbs($2,"_",TyUnit,$3(addname ctx"_")),$1 ctx) } 
 
-Fields      : 
+Flds      : 
     | /* empty */                       { fun ctx -> fun i -> []                                    }
-    | NEFields                          { $1                                                        }
-NEFields    : 
-    | Field                             { fun ctx -> fun i -> [ $1 ctx i ]                          }
-    | Field COMMA NEFields              { fun ctx -> fun i -> ($1 ctx i)::($3 ctx(i+1))             }
-Field       : 
+    | NEFlds                            { $1                                                        }
+NEFlds    : 
+    | Fld                               { fun ctx -> fun i -> [ $1 ctx i ]                          }
+    | Fld COMMA NEFlds                  { fun ctx -> fun i -> ($1 ctx i)::($3 ctx(i+1))             }
+Fld       : 
     | LCID EQ Tm                        { fun ctx -> fun i -> ($1.v, $3 ctx)                        }
     | Tm                                { fun ctx -> fun i -> (string_of_int i, $1 ctx)             }

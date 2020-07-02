@@ -71,7 +71,7 @@ let reservedWords = [
     ("|>",      fun i -> Parser.BARGT i);
     ("|]",      fun i -> Parser.BARRSQUARE i);
     ("\n",      fun i -> Parser.NEWLINE i); 
-    (";;",      fun i -> Parser.DOUBLESEMI i); 
+    (";;",      fun i -> Parser.DSEMI i); 
 
   (* Special compound symbols: *)
     (":=",      fun i -> Parser.COLONEQ i);
@@ -157,7 +157,7 @@ rule token              = parse
 | op+                       { createID (info lexbuf) (text lexbuf)                  }
 | symbol                    { createID (info lexbuf) (text lexbuf)                  }
 | "\""                      { resetStr(); startLex:=info lexbuf; string lexbuf      } 
-| ";;" nl                   { Parser.DOUBLESEMI(info lexbuf)                        }
+| ";;" nl                   { Parser.DSEMI(info lexbuf)                        }
 | eof                       { Parser.EOF(info lexbuf)                               }
 | comment_end               { error (info lexbuf) "Unmatched end of comment"        } 
 | comment                   { depth:=1;startLex:=info lexbuf;comment lexbuf;token lexbuf } 
