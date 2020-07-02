@@ -4,9 +4,8 @@
 open Support.Error
 open Support.Pervasive
 open Syntax
-open Core 
 open Format
-open Evaluator
+open Eval
 
 %}
 
@@ -83,53 +82,62 @@ open Evaluator
 %type <Syntax.context -> (Syntax.command list * Syntax.context)> toplevel
 
 %%
-/* Begin Interpreter */ 
-input : /* Left Recursion */
+
+
+
+/*-------  Interpreter ---------*/ 
+input :                     /* Left Recursion */
     |                         { fun ctx   -> [],ctx  }
     | input block             { fun ctx   -> 
                                 let blks,ctx = $1 ctx in let blk,ctx = $2 ctx in (List.append blks blk, ctx) } 
-block :     /* Left Recursion */                    
+block :                         /* Left Recursion */                    
     | Command                 { fun ctx   -> let cmd,ctx = $1 ctx in [cmd],ctx }             
     | block SEMI Command      { fun ctx   -> let cmd,ctx = $3 ctx in let cmds,ctx  = $1 ctx in 
                                 List.append cmds [cmd], ctx }  
-    | block HOGE              { let cmds,ctx = $1 emptycontext in let _ = List.iter (print_eval ctx) cmds in 
+    | block HOGE              { let cmds,ctx = $1 emptycontext in 
+                                let _ = List.iter (print_eval ctx) cmds in 
                                 fun ctx   -> let blk,ctx = $1 ctx in blk,ctx }  
     | block EOF               { fun ctx   -> let blk,ctx = $1 ctx in blk,ctx } 
-/* End Interpreter */
 
-/* Begin Compiler */
-toplevel :  /* Right Recursion */                
+/*--------- Compiler ----------*/
+toplevel :                                      /* Right Recursion */                
     | EOF                     { fun ctx   -> [],ctx } 
     | Command SEMI toplevel   { fun ctx   -> 
           let cmd,ctx   = $1 ctx in 
           let cmds,ctx  = $3 ctx in 
           cmd::cmds,ctx } 
-/* End Compliler */ 
 
-/* Modules both for Interpreter and for Compiler */ 
-Command :       /* A top-level command */ 
+
+
+/*--------- Module ---------*/ 
+Command :     
     | Term                          { fun ctx   -> let t = $1 ctx in Eval(tmInfo t,t),ctx }
     | LCID Binder                   { fun ctx   -> ((Bind($1.i,$1.v,$2 ctx)), addname ctx $1.v) } 
 Binder  : 
     | SLASH                         { fun ctx   -> NameBind } 
+
+
+
+
+/* --------- Term -----------*/ 
 Term :
     | AppTerm                       { $1 }
-    | LAMBDA LCID DOT Term          { print_endline "hoge";  fun ctx -> TmAbs($1, $2.v, $4(addname ctx $2.v)) }
-    | IF Term THEN Term ELSE Term   { fun ctx -> TmIf($1, $2 ctx, $4 ctx, $6 ctx) }
+    | LAMBDA LCID DOT Term          { fun ctx   -> TmAbs($1, $2.v, $4(addname ctx $2.v)) }
+    | IF Term THEN Term ELSE Term   { fun ctx   -> TmIf($1, $2 ctx, $4 ctx, $6 ctx) }
 AppTerm :
     | ATerm                         { $1 }
-    | AppTerm ATerm                 { print_endline "fuga";fun ctx -> let e1 = $1 ctx in TmApp(tmInfo e1,e1,$2 ctx) }
-    | SUCC ATerm                    { fun ctx -> TmSucc($1, $2 ctx ) }
-    | PRED ATerm                    { fun ctx -> TmPred($1, $2 ctx ) }
-    | ISZERO ATerm                  { fun ctx -> TmIsZero($1, $2 ctx) }
-ATerm :         /* Atomic terms are ones that never require extra parentheses */
-    | LPAREN Term RPAREN            { print_endline "term"; $2 } 
-    | LCID                          { fun ctx -> TmVar($1.i, name2index $1.i ctx $1.v, ctxlength ctx) } 
-    | TRUE                          { fun ctx -> TmTrue($1) }
-    | FALSE                         { fun ctx -> TmFalse($1) }
-    | INTV                          { fun ctx -> let rec f = function
-              0 -> TmZero($1.i)
-            | n -> print_endline "succ"; TmSucc($1.i, f (n-1))
-          in f $1.v }
+    | AppTerm ATerm                 { fun ctx   -> let e1 = $1 ctx in TmApp(tmInfo e1,e1,$2 ctx) }
+    | SUCC ATerm                    { fun ctx   -> TmSucc($1, $2 ctx ) }
+    | PRED ATerm                    { fun ctx   -> TmPred($1, $2 ctx ) }
+    | ISZERO ATerm                  { fun ctx   -> TmIsZero($1, $2 ctx) }
+ATerm :        
+    | LPAREN Term RPAREN            { $2 } 
+    | LCID                          { fun ctx   -> TmVar($1.i,name2index $1.i ctx $1.v,ctxlength ctx)}
+    | TRUE                          { fun ctx   -> TmTrue($1) }
+    | FALSE                         { fun ctx   -> TmFalse($1) }
+    | INTV                          { fun ctx   -> let rec f = function
+                                                      | 0 -> TmZero($1.i)
+                                                      | n -> print_endline "succ"; TmSucc($1.i, f (n-1))
+                                                   in f $1.v }
 
 
