@@ -1,6 +1,7 @@
 open Support.Pervasive
 open Support.Error
 open Syntax
+open Print
 open Subtype
 open Type
 
@@ -28,13 +29,22 @@ let rec evalF1 ctx store = function
 (* ----------------- EVALUATION ------------------- *) 
 
 and eval1 ctx store t = let p str = pr str;pr_tm ctx t;pn() in match t with  
+    | TmTApp(fi,TmTAbs(_,tyX,t),tyT)    ->  p"E-TAPPTABS    : "; tytmSubstTop tyT t,store
+    | TmTApp(fi,t,tyT)                  ->  p"E-TAPP        : "; let t',s'=eval1 ctx store t in 
+                                                                 TmTApp(fi,t',tyT),s'
+    | TmUnpack(fi,_,_,TmPack(_,tySome,v,_),t2) when isval ctx v 
+                                        ->  p"E-PACKUNPACK  : "; tytmSubstTop tySome (tmSubstTop(tmShift 1 v)t2),store
+    | TmUnpack(fi,tyX,x,t1,t2)          ->  p"E-UNPACK      : "; let t1',s'= eval1 ctx store t1 in
+                                                                 TmUnpack(fi,tyX,x,t1',t2),s'
+    | TmPack(fi,tySome,some,tyT)        ->  p"E-PACK        : "; let t',s' = eval1 ctx store some in 
+                                                                 TmPack(fi,tySome,t',tyT),s'
     | TmFix(fi,TmAbs(f,x,tyT1,t2))      ->  p"E-FIXBETA     : "; tmSubstTop t t2,store
     | TmFix(fi,t)                       ->  p"E-FIX         : "; let t',s'=eval1 ctx store t in TmFix(fi,t'),s' 
     | TmVar(fi,n,_)                     ->  p"E-VAR         : "; (match getbind fi ctx n with
         | BindTmAbb(t,_)                    -> t,store
         | _                                 -> raise NoRuleApplies) 
     | TmAscribe(fi,v,_)when isval ctx v ->  p"E-ASCRIBEVAR  : "; v,store
-    | TmAscribe(fi,t,tyT)               ->  p"E-ASCRIBE     : "; let t',s'=eval1 ctx store t in TmAscribe(fi,t',tyT),s' 
+    | TmAscribe(fi,t,tyT)               ->  p"E-ASCRIBE     : "; let t',s'=eval1 ctx store t in TmAscribe(fi,t',tyT),s'
     | TmLet(fi,x,v1,t2)when isval ctx v1->  p"E-LETV        : "; tmSubstTop v1 t2, store
     | TmLet(fi,x,t1,t2)                 ->  p"E-LET         : "; let t1',s'=eval1 ctx store t1 in TmLet(fi,x,t1',t2),s'
     | TmApp(fi,TmAbs(_,x,_,t),v) 
@@ -105,7 +115,7 @@ let rec process_commands ctx store = function
     | []                        ->  ctx,store 
     | cmd::cmds                 ->  oobox0;
                                     let ctx',store' = process_command ctx store cmd in 
-                                    Format.print_flush();
+                                    print_string"> ";Format.print_flush();
                                     process_commands ctx' store' cmds 
 
 

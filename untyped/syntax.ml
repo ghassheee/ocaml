@@ -64,7 +64,7 @@ let rec name2index fi ctx x     = match ctx with
 (* -------------------------------------------------- *) 
 (* Shifting *)
 
-let rec walk funOnVar c   = print_endline "walk";let f = funOnVar in function 
+let rec walk funOnVar c   = let f = funOnVar in function 
     | TmVar(fi,x,n)             -> funOnVar fi c x n
     | TmAbs(fi,x,t2)            -> TmAbs(fi,x,walk f(c+1)t2)
     | TmApp(fi,t1,t2)           -> TmApp(fi, walk f c t1, walk f c t2) 
@@ -111,7 +111,7 @@ let small   = function
 
 let rec printtm_Term outer ctx  = function 
     | TmAbs(fi,x,t2)            ->  let (ctx',x') = pickfreshname ctx x in obox();
-        pr "lambda "; pr x'; pr "."; 
+        pr "λ"; pr x'; pr "."; 
         if (small t2) && not outer then break() else ps();
         printtm_Term outer ctx' t2;
         cbox()
@@ -139,7 +139,6 @@ and printtm_ATerm outer ctx     = function
     | TmSucc(_,t1)              ->  let rec f n = function 
         | TmZero(_)                 -> pr (string_of_int n)
         | TmSucc(_,s)               -> f (n+1) s
-        | _                         -> (pr "(succ "; printtm_ATerm false ctx t1; pr ")")
     in f 1 t1
     | t                         ->  pr "("; printtm_Term outer ctx t; pr ")"
 

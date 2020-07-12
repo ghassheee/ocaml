@@ -1,6 +1,7 @@
 open Support.Error
 open Support.Pervasive
 open Syntax
+open Print
 
 exception NoRuleApplies
 
@@ -32,13 +33,10 @@ let rec tyeqv ctx tyS tyT   =
     | TyVar(i,_),TyVar(j,_)             ->  i=j
     | TyArr(tyS1,tyS2),TyArr(tyT1,tyT2) ->  tyeqv ctx tyS1 tyT1 && tyeqv ctx tyS2 tyT2
     | TyRecord(flds1),TyRecord(flds2)   ->  List.length flds1 = List.length flds2 &&
-                                            List.for_all(fun(li2,tyTi2)-> 
-                                                try let tyTi1 = List.assoc li2 flds1 in tyeqv ctx tyTi1 tyTi2 
-                                                with Not_found -> false) flds2
-    | TyVariant(flds1),TyVariant(flds2) ->  List.length flds1 = List.length flds2 &&
-                                            List.for_all(fun(li2,tyTi2)->
-                                                try let tyTi1 = List.assoc li2 flds1 in tyeqv ctx tyTi1 tyTi2
-                                                with Not_found -> false) flds2 
+                                            List.for_all(fun(li2,tyTi2) -> try 
+                                            let tyTi1 = List.assoc li2 flds1 in 
+                                            tyeqv ctx tyTi1 tyTi2
+                                            with Not_found -> false) flds2
     | (tyS,tyT)                         ->  tyS = tyT 
 
 

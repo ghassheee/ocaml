@@ -4,6 +4,7 @@ open Arg
 open Support.Pervasive
 open Support.Error
 open Syntax
+open Print
 open Type
 open Eval
 open Interpreter  

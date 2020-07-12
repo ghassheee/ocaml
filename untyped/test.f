@@ -12,3 +12,10 @@ y/;
 0; 
 succ (pred 0);
 iszero (pred (succ (succ 0))); 
+
+(\a.\b.\c.\x.a x); 
+(\a.\b.\c.\x.b a x); 
+
+
+
+

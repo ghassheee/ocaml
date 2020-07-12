@@ -13,8 +13,9 @@ open Interpreter
  * ####    REPL     ####
  * ##################### *)
 
+let () = print_string "> "; print_flush()
 let process' ()   = 
-    let cmds                    = parse'' repl stdin in ()  (* REPL cannot wait returning cmds *) 
+    let _ (*cmds*)          =   parse'' repl stdin in ()  (* REPL cannot wait returning cmds *) 
 
 let main' ()                =   try process' ();  0
                                 with Exit x -> x 

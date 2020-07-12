@@ -137,7 +137,7 @@ ATerm :
     | FALSE                         { fun ctx   -> TmFalse($1) }
     | INTV                          { fun ctx   -> let rec f = function
                                                       | 0 -> TmZero($1.i)
-                                                      | n -> print_endline "succ"; TmSucc($1.i, f (n-1))
+                                                      | n -> TmSucc($1.i, f (n-1))
                                                    in f $1.v }
 
 

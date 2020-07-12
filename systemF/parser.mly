@@ -5,6 +5,7 @@ open Format
 open Support.Error
 open Support.Pervasive
 open Syntax
+open Print 
 open Type
 open Eval
 open Interpreter 
@@ -17,10 +18,12 @@ let pe = print_endline
 %token <string  Support.Error.withinfo> LOAD
 %token <Support.Error.info> SHOWCONTEXT
 
-
 /* Keyword tokens */
-%token <Support.Error.info> TOP 
 
+%token <Support.Error.info> ALL
+%token <Support.Error.info> SOME
+
+%token <Support.Error.info> TOP 
 
 %token <Support.Error.info> REF 
 %token <Support.Error.info> REFTYPE
@@ -79,7 +82,7 @@ let pe = print_endline
 %token <Support.Error.info> ARROW
 %token <Support.Error.info> BANG
 %token <Support.Error.info> BARGT
-%token <Support.Error.info> BARRCURLY
+%token <Support.Error.info> BARRCUR
 %token <Support.Error.info> BARRSQUARE
 %token <Support.Error.info> COLON
 %token <Support.Error.info> COLONCOLON
@@ -95,14 +98,14 @@ let pe = print_endline
 %token <Support.Error.info> EXISTS
 %token <Support.Error.info> GT
 %token <Support.Error.info> HASH
-%token <Support.Error.info> LCURLY
-%token <Support.Error.info> LCURLYBAR
+%token <Support.Error.info> LCUR
+%token <Support.Error.info> LCURBAR
 %token <Support.Error.info> LEFTARROW
 %token <Support.Error.info> LPAREN
 %token <Support.Error.info> LSQUARE
 %token <Support.Error.info> LSQUAREBAR
 %token <Support.Error.info> LT
-%token <Support.Error.info> RCURLY
+%token <Support.Error.info> RCUR
 %token <Support.Error.info> RPAREN
 %token <Support.Error.info> RSQUARE
 %token <Support.Error.info> SEMI        /* semicolon */ 
@@ -165,6 +168,8 @@ Binder      :
 
 Ty        : 
     | ArrTy                             { $1                                                        } 
+    | ALL UCID DOT Ty                   { fun ctx ->  TyAll($2.v,$4(addname ctx $2.v))              } 
+    | SOME UCID DOT Ty                  { fun ctx ->  TySome($2.v,$4(addname ctx $2.v))             }
 ArrTy     :
     | ATy ARROW ArrTy                   { fun ctx ->  TyArr($1 ctx, $3 ctx)                         }
     | ATy                               { $1                                                        } 
@@ -179,7 +184,7 @@ ATy       :
     | BOOL                              { fun ctx ->  TyBool                                        } 
     | NAT                               { fun ctx ->  TyNat                                         }
     | UNITTYPE                          { fun ctx ->  TyUnit                                        } 
-    | LCURLY TyFlds RCURLY              { fun ctx ->  TyRecord($2 ctx 1)                            }
+    | LCUR TyFlds RCUR                  { fun ctx ->  TyRecord($2 ctx 1)                            }
 
 
 TyFlds    :
@@ -205,6 +210,10 @@ Tm        :
     | LET LCID EQ Tm IN Tm              { fun ctx ->  TmLet($1,$2.v,$4 ctx,$6(addname ctx $2.v))    }
     | LET USCORE EQ Tm IN Tm            { fun ctx ->  TmLet($1,"_",$4 ctx,$6(addname ctx"_"))       }
     | LAM LCID COLON Ty DOT Tm          { fun ctx ->  TmAbs($1,$2.v,$4 ctx,$6(addname ctx $2.v))    }
+    | LAM UCID DOT Tm                   { fun ctx ->  TmTAbs($1,$2.v,$4(addname ctx $2.v))          } 
+    | LET LCUR UCID COMMA LCID RCUR EQ Tm IN Tm
+                                        { fun ctx ->  let ctx' = addname(addname ctx $3.v)$5.v in 
+                                                      TmUnpack($1,$3.v,$5.v,$8 ctx,$10 ctx')        } 
     | IF Tm THEN Tm ELSE Tm             { fun ctx ->  TmIf($1,$2 ctx,$4 ctx,$6 ctx)                 }
     | LETREC LCID COLON Ty EQ Tm IN Tm  { fun ctx ->  let ctx' = addname ctx $2.v in 
                                                       TmLet($1,$2.v,
@@ -217,7 +226,8 @@ AppTm     :
     | SUCC    PathTm                    { fun ctx ->  TmSucc($1, $2 ctx )                           }
     | PRED    PathTm                    { fun ctx ->  TmPred($1, $2 ctx )                           }
     | ISZERO  PathTm                    { fun ctx ->  TmIsZero($1, $2 ctx)                          }
-    | AppTm PathTm                      { fun ctx ->  TmApp(tmInfo ($1 ctx),$1 ctx,$2 ctx)          }
+    | AppTm   PathTm                    { fun ctx ->  TmApp(tmInfo ($1 ctx),$1 ctx,$2 ctx)          }
+    | AppTm LSQUARE Ty RSQUARE          { fun ctx ->  TmTApp(tmInfo ($1 ctx),$1 ctx,$3 ctx)         }
 PathTm    : 
     | PathTm DOT LCID                   { fun ctx ->  TmProj($2, $1 ctx, $3.v)                      }
     | PathTm DOT INTV                   { fun ctx ->  TmProj($2, $1 ctx, soi $3.v)                  }
@@ -227,7 +237,8 @@ AscribeTm :
     | ATm                               { $1                                                        }
 ATm       :                       
     | LPAREN TmSeq RPAREN               { $2                                                        }
-    | LCURLY Flds RCURLY                { fun ctx ->  TmRecord($1,$2 ctx 1)                         }
+    | LCUR STAR Ty COMMA Tm RCUR AS Ty  { fun ctx ->  TmPack($1,$3 ctx,$5 ctx,$8 ctx)               } 
+    | LCUR Flds RCUR                    { fun ctx ->  TmRecord($1,$2 ctx 1)                         }
     | LCID                              { fun ctx ->  TmVar($1.i,name2index $1.i ctx $1.v,ctxlen ctx)}
     | STRINGV                           { fun ctx ->  TmString($1.i,$1.v)                           }
     | FLOATV                            { fun ctx ->  TmFloat($1.i,$1.v)                            }
