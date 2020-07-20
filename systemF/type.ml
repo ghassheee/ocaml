@@ -14,20 +14,17 @@ let rec typeof ctx   t      =
     | TmTAbs(fi,tyX,t)          ->  p"T-TABS        "; 
                                     let ctx' = addbind ctx tyX BindTyVar in 
                                     TyAll(tyX,typeof ctx' t) 
-    | TmPack(fi,tyT,t,tySome)   ->  p"T-PACK        "; ( match tySome with
+    | TmPack(fi,tyT,t,tySome)   ->  p"T-PACK        "; ( match simplifyty ctx tySome with
         | TySome(tyX,tyT')          ->  let tyU = typeof ctx t in 
                                         let tyU' = tySubstTop tyT tyT' in 
                                         if tyeqv ctx tyU tyU' then tySome
                                         else error fi "Instance does not match Existential Type" 
         | _                         ->  error fi "existential type expected" )
-    | TmUnpack(fi,tyX,x,some,t) ->  p"T-UNPACKPACK  "; ( match some with 
-        |   TmPack(_,tyInstance,tmInstance,_) 
-                                    -> let tySome = typeof ctx some in ( match simplifyty ctx tySome with
-            |   TySome(tyY,tyT')        ->  let ctx' = addbind (addbind ctx tyX BindTyVar) x (BindTmVar tyT') in
-                                            let ty = tyShift(-2)(typeof ctx' t) in
-                                            ty 
-            |   _                       ->  error fi "existential type expected")
-        |   _                       ->  error fi "existential type set expected" ) 
+    | TmUnpack(fi,tyX,x,some,t) ->  p"T-UNPACKPACK  "; let tySome = typeof ctx some in 
+                                    ( match simplifyty ctx tySome with
+        |   TySome(tyY,tyT')        ->  let ctx' = addbind(addbind ctx tyX BindTyVar)x(BindTmVar tyT') in
+                                        let ty = tyShift(-2)(typeof ctx' t) in ty 
+        |   _                       ->  error fi "existential type expected")
     | TmTApp(fi,t,tyT)          ->  p"T-TAPP        ";
                                     let tyT1 = typeof ctx t in (match simplifyty ctx tyT1 with 
         | TyAll(tyX,tyT')           -> tySubstTop tyT tyT'
