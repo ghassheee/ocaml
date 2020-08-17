@@ -8,7 +8,6 @@ p1  =   (unfold [Counter] p).inc unit;
 (unfold [Counter] p1).get;
 
 
-
 Hungry = mu A. Nat -> A ;
 f   = fix (\f:Nat->Hungry. \n:Nat. fold [Hungry] f) ;
 u   = unfold [Hungry] ;
