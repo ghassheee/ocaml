@@ -1,5 +1,4 @@
-open Support.Error
-open Support.Pervasive
+open Support
 open Syntax
 open Print
 

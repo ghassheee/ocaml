@@ -1,8 +1,7 @@
 open Format
 open Arg 
 
-open Support.Pervasive
-open Support.Error
+open Support
 open Syntax
 open Type
 open Eval
@@ -29,15 +28,14 @@ let parse' machine in_channel =   (* machine -> in_channel -> command list *)
 (*-----------  FILE ---------------*) 
 
 let path                = ref [""]
-let addpath f           = path := f :: !path
-let argDefs             = [ ("-I", String addpath, "Append a dir to path")]
-let files               = ref (None : string option )
-let getFile ()          = match !files with
+let argDefs             = [ ("-I", String(fun f -> path := f :: !path), "Append a dir to path")]
+let file                = ref (None : string option )
+let getFile ()          = match !file with
     | None                  -> err "Cannot get File"
     | Some s                -> s;;
-let pushFile str        = match !files with 
+let pushFile str        = match !file with 
     | Some (_)              -> err "Specify Single File."
-    | None                  -> files := Some str 
+    | None                  -> file := Some str 
 let parseArgs ()        = parse argDefs pushFile "" ;; 
 let openFile f          =  (* string -> in_channel *)
     let rec trynext         = function 
@@ -53,7 +51,7 @@ let parseFile f         =  (* string -> command list *)
     parse' compiler in_channel 
 
 let process_file str ctx store  =  (* string -> unit *)  (* print the evals of the list of commands *)  
+    let () = Lexer.set_filename str in 
     let cmds                =   parseFile str in
     process_commands ctx store cmds  
-
 

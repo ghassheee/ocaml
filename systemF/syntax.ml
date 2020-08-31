@@ -1,6 +1,5 @@
 open Format
-open Support.Error
-open Support.Pervasive
+open Support
 
 let soi = string_of_int
 (* -------------------------------------------------- *) 
@@ -184,8 +183,11 @@ let tmInfo  = function
 
 (* -------------------------------------------------- *) 
 (* Bind *) 
-let rec getbind fi ctx i        =   try let (_,bind) = List.nth ctx i in bindshift(i+1)bind
-                                    with Failure _ -> error fi(getbind_err_msg i(ctxlen ctx))
+let getbind_err                 =  
+        Printf.sprintf "getbind: VariableLookupFail: offset:%d,ctx size:%d" 
+let rec getbind fi ctx i        =   
+    try let (_,bind) = List.nth ctx i in bindshift(i+1)bind
+    with Failure _ -> error fi(getbind_err i(ctxlen ctx))
 
 let getTypeFromContext fi ctx n =   match getbind fi ctx n with 
     | BindTmVar(tyT)                -> tyT

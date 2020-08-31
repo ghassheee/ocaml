@@ -1,8 +1,7 @@
 open Format
 open Arg 
 
-open Support.Pervasive
-open Support.Error
+open Support
 open Syntax
 open Print
 open Type

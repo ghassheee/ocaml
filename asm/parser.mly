@@ -1,110 +1,111 @@
-/*  Yacc grammar for the parser. */
-
 %{
-open Support.Error
-open Support.Pervasive
-open Syntax
-open Core 
-open Format
-open Evaluator
+    open Syntax
+    open Support
+    
+    exception ALUError
+
+
+    let symboltbl:tbl = Hashtbl.create 1024 
+    let reserved = [
+    ("SP", 0);
+    ("LCL", 1);
+    ("ARG", 2);
+    ("THIS", 3);("THAT", 4); 
+    ("R0", 0);("R1", 1);("R2", 2);("R3", 3);("R4", 4);
+    ("R5", 5);("R6", 6);("R7", 7);("R8", 8);("R9", 9);
+    ("R10",10);("R11",11);("R12",12);("R13",13);("R14",14);("R15",15);
+    ("SCREEN", 16384);
+    ("KBD", 24576)
+    ]
+    let _ = List.iter (fun (s,i)-> Hashtbl.add symboltbl s i) reserved 
+
+    let line = ref 0
+    let incr_line () = incr line 
+    let decr_line () = decr line 
+
 
 %}
 
-/* All token has info type 
- * So the declaration of a token is;
- *  X:  %token IF
- *  O:  %token <info> IF 
- * and sometime, -- in the case of identifiers and 
- * constant values -- more info is provided. */
+/* %token <arg> TOKEN */ 
 
-/* Keyword tokens */
-%token <Support.Error.info> IF
-%token <Support.Error.info> THEN
-%token <Support.Error.info> ELSE
-%token <Support.Error.info> TRUE
-%token <Support.Error.info> FALSE
-%token <Support.Error.info> SUCC
-%token <Support.Error.info> PRED
-%token <Support.Error.info> ISZERO
+%token NEWLINE 
+%token EOF 
+%token LPAREN RPAREN 
+%token EQ 
+%token PLUS MINUS MUL AND OR 
+%token <int> NUM 
+%token <string> VAR
+%token A D M MD AM AD AMD 
+%token AT 
+%token ONE ZERO 
+%token BANG
+%token COLON SEMI 
+%token JGT JEQ JGE JLT JNE JLE JMP 
 
-/* Identifier and constant value tokens */
-%token <string  Support.Error.withinfo> UCID  /* uppercase-initial */
-%token <string  Support.Error.withinfo> LCID  /* lowercase/symbolic-initial */
-%token <int     Support.Error.withinfo> INTV
-%token <float   Support.Error.withinfo> FLOATV
-%token <string  Support.Error.withinfo> STRINGV
 
-/* Symbolic tokens */
-%token <Support.Error.info> APOSTROPHE
-%token <Support.Error.info> DQUOTE
-%token <Support.Error.info> ARROW
-%token <Support.Error.info> BANG
-%token <Support.Error.info> BARGT
-%token <Support.Error.info> BARRCURLY
-%token <Support.Error.info> BARRSQUARE
-%token <Support.Error.info> COLON
-%token <Support.Error.info> COLONCOLON
-%token <Support.Error.info> COLONEQ
-%token <Support.Error.info> COLONHASH
-%token <Support.Error.info> COMMA
-%token <Support.Error.info> DARROW
-%token <Support.Error.info> DDARROW
-%token <Support.Error.info> DOT
-%token <Support.Error.info> EOF
-%token <Support.Error.info> EQ
-%token <Support.Error.info> EQEQ
-%token <Support.Error.info> EXISTS
-%token <Support.Error.info> GT
-%token <Support.Error.info> HASH
-%token <Support.Error.info> LCURLY
-%token <Support.Error.info> LCURLYBAR
-%token <Support.Error.info> LEFTARROW
-%token <Support.Error.info> LPAREN
-%token <Support.Error.info> LSQUARE
-%token <Support.Error.info> LSQUAREBAR
-%token <Support.Error.info> LT
-%token <Support.Error.info> RCURLY
-%token <Support.Error.info> RPAREN
-%token <Support.Error.info> RSQUARE
-%token <Support.Error.info> SEMI        /* semicolon */ 
-%token <Support.Error.info> SLASH
-%token <Support.Error.info> STAR
-%token <Support.Error.info> TRIANGLE
-%token <Support.Error.info> USCORE
-%token <Support.Error.info> VBAR
-%token <Support.Error.info> NEWLINE
-%token <Support.Error.info> DOUBLESEMI
-%token <Support.Error.info> HOGE
-/* The returned type of a toplevel is Syntax.command list. */
-%start toplevel
+%left  PLUS
 
-%type <Syntax.command list> toplevel
+%start input 
+%type <Syntax.commands * Support.tbl> input 
+
 %%
+input: 
+    | file                      { $1,symboltbl } 
+file: 
+    | EOF                       { []                 } 
+    | line file                 { List.append $1 $2  } 
 
-toplevel :                  { [] } 
-  | toplevel block          { [] } 
+line : 
+    | NEWLINE                   { []    }
+    | command NEWLINE           { [$1]  }
 
-block :
-    EOF                     { [] }
-  | Command HOGE            { let cmd = $1 in let _ = print_eval cmd; flush stdout in [cmd] }
-  | Command SEMI block      { let cmd = $1 in let cmds = $3 in let _ = print_eval cmd;flush stdout in  cmd::cmds }
-Command :       /* A top-level command */
-  | Term                            { let t     = $1 in Eval(tmInfo t,t) }
-Term :
-    AppTerm                         { $1 }
-  | IF Term THEN Term ELSE Term     { TmIf($1, $2, $4, $6) }
-AppTerm :
-    ATerm                           { $1 }
-  | SUCC ATerm                      { TmSucc($1, $2) }
-  | PRED ATerm                      { TmPred($1, $2) }
-  | ISZERO ATerm                    { TmIsZero($1, $2) }
-ATerm :         /* Atomic terms are ones that never require extra parentheses */
-    LPAREN Term RPAREN              { $2 } 
-  | TRUE                            { TmTrue($1) }
-  | FALSE                           { TmFalse($1) }
-  | INTV                            { let rec f n = match n with
-              0 -> TmZero($1.i)
-            | n -> TmSucc($1.i, f (n-1))
-          in f $1.v }
+command: 
+    | comp jump                 { incr_line(); C_COMMAND([],$1,$2) } 
+    | dest comp                 { incr_line(); C_COMMAND($1,$2,NULL) } 
+    | dest comp jump            { incr_line(); C_COMMAND($1, $2, $3) }
+    | AT symbol                 { incr_line(); A_COMMAND($2) }
+    | LPAREN VAR RPAREN         { add symboltbl $2 !line; L_COMMAND($2) }
 
+symbol: 
+    | VAR                       { VAR($1)  } 
+    | NUM                       { ADDR($1) } 
 
+jump: 
+    | SEMI jjj                  { $2  } 
+jjj: 
+    | JGT                       { JGT } 
+    | JEQ                       { JEQ } 
+    | JGE                       { JGE } 
+    | JLT                       { JLT } 
+    | JNE                       { JNE } 
+    | JLE                       { JLE } 
+    | JMP                       { JMP } 
+
+dest: 
+    | regs EQ                   { $1 } 
+regs: 
+    | reg                       { [$1]      } 
+    | MD                        { [M;D]     } 
+    | AM                        { [A;M]     } 
+    | AD                        { [A;D]     } 
+    | AMD                       { [A;M;D]   } 
+
+/* CPU instruction  */
+comp: 
+    |       regOI               { REG($1)                   } 
+    | MINUS regOI               { UMINUS($2)                } 
+    | BANG  reg                 { NOT($2)                   } 
+    | reg PLUS  regOI           { PLUS($1, $3)              } 
+    | reg MINUS regOI           { MINUS($1,$3)              } 
+    | reg MUL   regOI           { MUL($1,$3)                } 
+    | reg AND   regOI           { AND($1,$3)                } 
+    | reg OR    regOI           { OR($1,$3)                 } 
+
+reg: 
+    | A                         { A                         }                    
+    | M                         { M                         }                      
+    | D                         { D                         }                     
+
+regOI: 
+    | reg                       { $1                        } 
+    | NUM                       { if $1=0 then ZERO else if $1=1 then ONE else raise ALUError } 

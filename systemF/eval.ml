@@ -1,5 +1,4 @@
-open Support.Pervasive
-open Support.Error
+open Support
 open Syntax
 open Print
 open Subtype
@@ -25,6 +24,7 @@ let rec evalF1 ctx store = function
     | TmTimesfloat(fi,TmFloat(_,a),TmFloat(_,b)) -> TmFloat(fi,a*.b),store
     | TmTimesfloat(fi,(TmFloat(_,a)as f),t)      -> let t',s'=eval1 ctx store t in TmTimesfloat(fi,f,t'),s' 
     | TmTimesfloat(fi,t1,t2)                     -> let t1',s'=eval1 ctx store t1 in TmTimesfloat(fi,t1',t2),s'   
+    | _ -> raise NoRuleApplies 
 
 (* ----------------- EVALUATION ------------------- *) 
 
