@@ -2,8 +2,7 @@
 
 %{
 open Format
-open Support.Error
-open Support.Pervasive
+open Support
 open Syntax
 open Type
 open Eval
@@ -14,134 +13,135 @@ let pe = print_endline
 
 
 /* REPL Methods */ 
-%token <string  Support.Error.withinfo> LOAD
-%token <Support.Error.info> SHOWCONTEXT
+%token <string  Support.withinfo> LOAD
+%token <Support.info> SHOWCONTEXT
 
 
 /* Keyword tokens */
 
-%token <Support.Error.info> TYPE
-%token <Support.Error.info> REC
-%token <Support.Error.info> FOLD
-%token <Support.Error.info> UNFOLD
+%token <Support.info> TYPE
+%token <Support.info> REC
+%token <Support.info> FOLD
+%token <Support.info> UNFOLD
 
-%token <Support.Error.info> TOP 
+%token <Support.info> TOP 
 
-%token <Support.Error.info> SOURCE
-%token <Support.Error.info> SINK
-%token <Support.Error.info> REF 
-%token <Support.Error.info> REFTYPE
+%token <Support.info> SOURCE
+%token <Support.info> SINK
+%token <Support.info> REF 
+%token <Support.info> REFTYPE
 
-%token <Support.Error.info> LIST
-%token <Support.Error.info> TAIL
-%token <Support.Error.info> HEAD
-%token <Support.Error.info> ISNIL
-%token <Support.Error.info> CONS
-%token <Support.Error.info> NIL
+%token <Support.info> LIST
+%token <Support.info> TAIL
+%token <Support.info> HEAD
+%token <Support.info> ISNIL
+%token <Support.info> CONS
+%token <Support.info> NIL
 
-%token <Support.Error.info> LETREC 
-%token <Support.Error.info> FIX 
+%token <Support.info> LETREC 
+%token <Support.info> FIX 
 
-%token <Support.Error.info> STRING
-%token <Support.Error.info> FLOAT
-%token <Support.Error.info> TIMESFLOAT
+%token <Support.info> STRING
+%token <Support.info> FLOAT
+%token <Support.info> TIMESFLOAT
 
-%token <Support.Error.info> CASE
-%token <Support.Error.info> OF
-%token <Support.Error.info> TAG
+%token <Support.info> CASE
+%token <Support.info> OF
+%token <Support.info> TAG
 
-%token <Support.Error.info> AS
+%token <Support.info> AS
 
-%token <Support.Error.info> UNIT
-%token <Support.Error.info> UNITTYPE
+%token <Support.info> UNIT
+%token <Support.info> UNITTYPE
 
-%token <Support.Error.info> WHERE
-%token <Support.Error.info> IN
-%token <Support.Error.info> LET
+%token <Support.info> WHERE
+%token <Support.info> IN
+%token <Support.info> LET
 
-%token <Support.Error.info> BOOL
-%token <Support.Error.info> NAT
+%token <Support.info> BOOL
+%token <Support.info> NAT
 
-%token <Support.Error.info> SUCC
-%token <Support.Error.info> PRED
-%token <Support.Error.info> ISZERO
+%token <Support.info> SUCC
+%token <Support.info> PRED
+%token <Support.info> ISZERO
 
-%token <Support.Error.info> LAM
-%token <Support.Error.info> IF
-%token <Support.Error.info> THEN
-%token <Support.Error.info> ELSE
-%token <Support.Error.info> TRUE
-%token <Support.Error.info> FALSE
+%token <Support.info> LAM
+%token <Support.info> IF
+%token <Support.info> THEN
+%token <Support.info> ELSE
+%token <Support.info> TRUE
+%token <Support.info> FALSE
 
 /* Identifier and constant value tokens */
-%token <string  Support.Error.withinfo> UCID  /* uppercase-initial */
-%token <string  Support.Error.withinfo> LCID  /* lowercase/symbolic-initial */
-%token <int     Support.Error.withinfo> INTV
-%token <float   Support.Error.withinfo> FLOATV
-%token <string  Support.Error.withinfo> STRINGV
+%token <string  Support.withinfo> UCID  /* uppercase-initial */
+%token <string  Support.withinfo> LCID  /* lowercase/symbolic-initial */
+%token <int     Support.withinfo> INTV
+%token <float   Support.withinfo> FLOATV
+%token <string  Support.withinfo> STRINGV
 
 /* Symbolic tokens */
-%token <Support.Error.info> APOSTROPHE
-%token <Support.Error.info> DQUOTE
-%token <Support.Error.info> ARROW
-%token <Support.Error.info> BANG
-%token <Support.Error.info> BARGT
-%token <Support.Error.info> BARRCURLY
-%token <Support.Error.info> BARRSQUARE
-%token <Support.Error.info> COLON
-%token <Support.Error.info> COLONCOLON
-%token <Support.Error.info> COLONEQ
-%token <Support.Error.info> COLONHASH
-%token <Support.Error.info> COMMA
-%token <Support.Error.info> DARROW
-%token <Support.Error.info> DDARROW
-%token <Support.Error.info> DOT
-%token <Support.Error.info> EOF
-%token <Support.Error.info> EQ
-%token <Support.Error.info> EQEQ
-%token <Support.Error.info> EXISTS
-%token <Support.Error.info> GT
-%token <Support.Error.info> HASH
-%token <Support.Error.info> LCURLY
-%token <Support.Error.info> LCURLYBAR
-%token <Support.Error.info> LEFTARROW
-%token <Support.Error.info> LPAREN
-%token <Support.Error.info> LSQUARE
-%token <Support.Error.info> LSQUAREBAR
-%token <Support.Error.info> LT
-%token <Support.Error.info> RCURLY
-%token <Support.Error.info> RPAREN
-%token <Support.Error.info> RSQUARE
-%token <Support.Error.info> SEMI        /* semicolon */ 
-%token <Support.Error.info> SLASH
-%token <Support.Error.info> STAR
-%token <Support.Error.info> TRIANGLE
-%token <Support.Error.info> USCORE
-%token <Support.Error.info> VBAR
-%token <Support.Error.info> NEWLINE
-%token <Support.Error.info> DOUBLESEMI
-/* The returned type of a toplevel is Syntax.command list. */
+%token <Support.info> APOSTROPHE
+%token <Support.info> DQUOTE
+%token <Support.info> ARROW
+%token <Support.info> BANG
+%token <Support.info> BARGT
+%token <Support.info> BARRCURLY
+%token <Support.info> BARRSQUARE
+%token <Support.info> COLON
+%token <Support.info> COLONCOLON
+%token <Support.info> COLONEQ
+%token <Support.info> COLONHASH
+%token <Support.info> COMMA
+%token <Support.info> DARROW
+%token <Support.info> DDARROW
+%token <Support.info> DOT
+%token <Support.info> EOF
+%token <Support.info> EQ
+%token <Support.info> EQEQ
+%token <Support.info> EXISTS
+%token <Support.info> GT
+%token <Support.info> HASH
+%token <Support.info> LCURLY
+%token <Support.info> LCURLYBAR
+%token <Support.info> LEFTARROW
+%token <Support.info> LPAREN
+%token <Support.info> LSQUARE
+%token <Support.info> LSQUAREBAR
+%token <Support.info> LT
+%token <Support.info> RCURLY
+%token <Support.info> RPAREN
+%token <Support.info> RSQUARE
+%token <Support.info> SEMI        /* semicolon */ 
+%token <Support.info> SLASH
+%token <Support.info> STAR
+%token <Support.info> TRIANGLE
+%token <Support.info> USCORE
+%token <Support.info> VBAR
+%token <Support.info> NEWLINE
+%token <Support.info> DOUBLESEMI
+
+
 %start toplevel
 %start input 
-%type <Syntax.context -> Eval.store -> Syntax.uvargenerator -> Syntax.constr -> (Syntax.command list * Syntax.context * Eval.store * Syntax.uvargenerator * Syntax.constr)> input 
+%type <Syntax.context -> Eval.store -> Syntax.uvargenerator -> Syntax.constr -> 
+    (Syntax.command list * Syntax.context * Eval.store * Syntax.uvargenerator * Syntax.constr)> input 
 %type <Syntax.context -> (Syntax.command list * Syntax.context)> toplevel
 
 %%
-
 
 
 /************   REPL   ***************/
 
 input :   /* Left Recursion */
     |                                 { fun _ _ _ _   ->  [],emptyctx,emptystore,uvargen,[]       }
-    | input LOAD                      { let file              = $2.v in 
+    | input LOAD                      { let file            = $2.v in 
                                         fun ctx s u c ->  [],ctx,s,u,c                            }
-    | input SHOWCONTEXT DOUBLESEMI    { let _,ctx',s',u',c'   = $1 [] emptystore (uvargen) [] in pr_ctx ctx';
+    | input SHOWCONTEXT DOUBLESEMI    { let _,ctx',s',u',c' = $1 [] emptystore(uvargen)[] in pr_ctx ctx';
                                         fun _ _ _ _   ->  [],ctx',s',u',c'                        }  
     | input DOUBLESEMI                { fun ctx s u c ->  [],ctx,s,u,c                            } 
-    | input oneREPL                   { let _,ev_ctx,s,u,c    = $1 [] emptystore (uvargen) [] in   
-                                        let cmds,_            = $2 ev_ctx in 
-                                        let ev_ctx',s',u',c'  = process_commands ev_ctx s u c cmds  in 
+    | input oneREPL                   { let _,ev_ctx,s,u,c  = $1 [] emptystore (uvargen) [] in   
+                                        let cmds,_          = $2 ev_ctx in 
+                                        let ev_ctx',s',u',c'= process_commands ev_ctx s u c cmds  in 
                                         fun _ _ _ _   ->  [],ev_ctx',s',u',c'                     } 
 oneREPL : 
     | Command DOUBLESEMI              { fun ctx       ->  let cmd,ctx'    = $1 ctx in [cmd],ctx'  } 

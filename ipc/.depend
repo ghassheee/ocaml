@@ -1,0 +1,13 @@
+lexer.cmo : support.cmo parser.cmi
+lexer.cmx : support.cmx parser.cmx
+main.cmo : syntax.cmo support.cmo proof.cmo
+main.cmx : syntax.cmx support.cmx proof.cmx
+parser.cmo : syntax.cmo support.cmo parser.cmi
+parser.cmx : syntax.cmx support.cmx parser.cmi
+parser.cmi : syntax.cmo support.cmo
+proof.cmo : syntax.cmo
+proof.cmx : syntax.cmx
+support.cmo :
+support.cmx :
+syntax.cmo : support.cmo
+syntax.cmx : support.cmx

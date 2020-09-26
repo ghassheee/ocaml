@@ -1,5 +1,4 @@
-open Support.Error
-open Support.Pervasive
+open Support
 open Syntax
 
 exception NoRuleApplies
@@ -85,11 +84,13 @@ let rec subtype a tyS tyT     =
             | _,((li,tyTi)::rT)             ->  let tySi    = List.assoc li fS in 
                                                 let rS      = List.remove_assoc li fS in 
                                                 let a1      = subtype a0 tySi tyTi in
-                                                subtype a1 (TyRecord(rS)) (TyRecord(rT)))
+                                                subtype a1 (TyRecord(rS)) (TyRecord(rT))
+            | _,_                           ->  raise NoRuleApplies)
         | TyArr(tyS1,tyS2),TyArr(tyT1,tyT2)
                                         ->  let a1 = subtype a0 tyT1 tyS1 in 
                                             subtype a1 tyS2 tyT2
         | _,TyRec(y,tyT1)               ->  subtype a0 tyS tyT    
+        | _,_                           ->  raise NoRuleApplies 
 
         
 (* --------- SUBTYPING -------------- *)

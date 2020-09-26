@@ -1,11 +1,10 @@
-
 open Arg
 open Syntax
 open Printf
 
 
 (* PARSE *) 
-let parse in_channel = 
+let lex_and_parse in_channel = 
     let lexbuf  = Lexing.from_channel in_channel in 
     let cmds    = Parser.input Lexer.token lexbuf 
     in Parsing.clear_parser(); close_in in_channel; cmds 
@@ -28,12 +27,13 @@ let get_file    = fun () -> match !file with
     | None          -> raise SingleFileMustBeSpecified  ;;
 
 
-(* MAIN: FILE -> LEX -> PARSE -> ASSEMBLE *) 
-let _ = parseArgs () in 
-let file = get_file () in 
-let ch = open_in file in 
-let cmds,tbl = parse ch  in 
-let alloc = ref 16 in 
+(* MAIN: 
+ *      FILE -> LEX -> PARSE -> ASSEMBLE *) 
+let _           = parseArgs () in 
+let file        = get_file () in 
+let ch          = open_in file in 
+let cmds,tbl    = lex_and_parse ch  in 
+let alloc       = ref 16 in 
 let out_channel = open_out !out_file in 
 let out s       = fprintf out_channel "%s" s in 
 List.iter (fun c -> out (asm_cmd tbl alloc c)) cmds ; 

@@ -1,17 +1,6 @@
 
-  val pr : string   -> unit
-  val ps                : unit      -> unit
-  val pe                : string    -> unit 
-  val pn                : unit      -> unit
-  val pi                : int       -> unit 
-  val pb                : int -> int -> unit 
-  val getbind_err_msg   : int -> int -> string
-
   exception Exit of int
 
-  (* An element of the type info represents a "file position": a 
-     file name, line number, and character position within the line.  
-     Used for printing error messages. *)
   type info
   val dummyinfo : info
 
@@ -39,4 +28,6 @@
   val warning : string -> unit
   val warningAt : info -> string -> unit
 
+val pr : string -> unit 
+val ps : unit -> unit 
 

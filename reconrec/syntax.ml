@@ -1,6 +1,5 @@
 open Format
-open Support.Error
-open Support.Pervasive
+open Support
 
 let soi = string_of_int
 (* -------------------------------------------------- *) 
@@ -223,7 +222,11 @@ let tmInfo  = function
     | TmFix(fi,_)           -> fi
     | TmFold(fi,_)          -> fi 
     | TmUnfold(fi,_)        -> fi 
-
+    | TmNil(fi,_)           -> fi 
+    | TmCons(fi,_,_,_)      -> fi 
+    | TmHead(fi,_,_)        -> fi
+    | TmTail(fi,_,_)        -> fi
+    | TmIsNil(fi,_,_)       -> fi 
 (* -------------------------------------------------- *) 
 (* Bind *) 
 let rec getbind fi ctx i        =   try let (_,bind) = List.nth ctx i in bindshift(i+1)bind

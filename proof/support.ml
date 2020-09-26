@@ -4,10 +4,8 @@ open Format
 let pi  = print_int
 let pr  = print_string
 let ps  = print_space
-let pe  = print_endline
 let pn  = print_newline
 let cut = print_cut
-
 
     exception Exit of int
 
@@ -30,9 +28,6 @@ let cut = print_cut
 
 
 
-    let pb                      = Format.print_break
-    let getbind_err_msg         =  
-        Printf.sprintf "getbind: Variable lookup failure: offset:%d,ctx size:%d" 
 
 
 

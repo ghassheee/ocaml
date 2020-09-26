@@ -1,5 +1,4 @@
-open Support.Error
-open Support.Pervasive
+open Support
 open Syntax
 open Subtype
 
@@ -20,7 +19,10 @@ let substinconstr x tyT   =
     List.map (fun(tyS1,tyS2)->(substinty x tyT tyS1,substinty x tyT tyS2)) 
 
 let apply_constr constr tyT =
-    List.fold_left (fun tyS (TyId(x),tyC2) -> substinty x tyC2 tyS) tyT (List.rev constr);;
+    let f tyS = function 
+        | TyId(x),tyC2      -> substinty x tyC2 tyS 
+        | _                 -> raise NoRuleApplies  in 
+    List.fold_left f tyT (List.rev constr);;
 
 let rec occurcheck x      = function
     | TyArr(tyT1,tyT2)          -> occurcheck x tyT1 || occurcheck x tyT2
@@ -28,8 +30,10 @@ let rec occurcheck x      = function
     | tyT                       -> false 
 
 
-let rec unify fi ctx msg l   =  if l = [] then [] else  let c::cs = l in 
-    let p (tyS,tyT) = pr"UNIFY: ";pr_Type false ctx tyS;pr", ";pr_Type false ctx tyT;pn() in match (c::cs) with 
+let rec unify fi ctx msg =  function 
+| []    -> [] 
+| c::cs -> let p(tyS,tyT)= pr"UNIFY: ";pr_Type false ctx tyS;pr", ";pr_Type false ctx tyT;pn() in 
+( match (c::cs) with 
     | (tyT,TyRec(x,tyS))::rest  ->  p c;                                    
                                     unify fi ctx msg ((tyS,tyT)::rest)
     | (TyRec(x,tyS),tyT)::rest  ->  p c;                                    
@@ -49,7 +53,7 @@ let rec unify fi ctx msg l   =  if l = [] then [] else  let c::cs = l in
     | (TyArr(tyS1,tyS2),TyArr(tyT1,tyT2))::rest
                                 ->  p c ; unify fi ctx msg ((tyS1,tyT1)::((tyS2,tyT2)::rest))
     | (tyS,tyT) :: rest         ->  p c ; error fi "Unsolvable constraints"
-
+    | _                         ->  raise NoRuleApplies ) 
 
 
 let rec recon ctx uvar t = 
@@ -100,9 +104,9 @@ let rec recon ctx uvar t =
                                     let generalised_T1      = apply_constr sol_t1 tyT1 in 
                                     let NextUVar(y,uvar'')  = uvar'() in 
                                     let ctx' = addbind ctx y (BindTmVar(generalised_T1)) in 
-                                    let n = ctxlen ctx in 
                                     let tyT2,uvar''',constr'' = recon ctx' uvar'' t2 in 
                                     tyT2,uvar''',constr''
+                                    (*
     | TmLet(fi,x,t1,t2)         ->  p"CT-LETPOLY    ";
                                     let tyT2,uvar',constr' = recon ctx uvar (tmSubstTop t1 t2) in 
                                     tyT2,uvar', constr'
@@ -114,6 +118,8 @@ let rec recon ctx uvar t =
                                         tyT2, uvar'', constr'@constr''
                                     else 
                                         recon ctx uvar (tmSubstTop t1 t2)
+                                        *)
+    | _                         ->  raise NoRuleApplies
 let recon' sol ctx uvar t = ()
 
 
@@ -203,7 +209,9 @@ let rec typeof ctx   t      = let p str = pr str;pr": (∣Γ∣=";pi(ctxlen ctx)
             then    join ctx (typeof ctx t2) (typeof ctx t3)
             else    error fi "if-condition expects a boolean" 
     | TmAscribe(fi,t,tyT)       ->  p"T-ASCRIBE     ";
-                                    if (subtype ctx)(typeof ctx t)tyT then tyT else error fi "Type Ascription Mismatch"       
+            if (subtype ctx)(typeof ctx t)tyT then tyT else error fi "Type Ascription Mismatch"       
+    | _                         -> raise NoRuleApplies 
+
 
 
 

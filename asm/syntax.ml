@@ -40,19 +40,6 @@ type command =
 
 type commands = command list 
 
-let pr = print_string 
-let pi = print_int 
-let pn = print_newline
-let pr_addr = function 
-    | VAR(s) -> pr s 
-    | ADDR(i) -> pi i 
-let pr_cmd = function 
-    | A_COMMAND(a)      -> pr"@"; pr_addr a ;pn()
-    | C_COMMAND(d,c,j)  -> ()
-    | _                 -> () 
-
-type bit = O | I 
-type code = bit list 
 
 exception ParseErrorComp
 exception ParseErrorDest 
