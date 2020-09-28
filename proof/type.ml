@@ -26,6 +26,11 @@ let rec typeof ctx          = function
                 let tyT2 = typeof ctx t2 in
                 if (=) tyT2 (typeof ctx t3) then tyT2 else error fi "resulting type of if statement mismatch" 
                 else error fi "if-condition expects a boolean" 
+    | TmSucc(fi,t)              -> typeof ctx t 
+    | TmPred(fi,t)              -> typeof ctx t 
+    | TmZero(fi)                -> TyNat
+    | TmIsZero(fi,t)            -> if TyNat = typeof ctx t then TyBool else error fi "iszero takes nat"
+
 
 
 (* ---- *) 

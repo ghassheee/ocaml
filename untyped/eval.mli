@@ -1,6 +1,5 @@
 open Format
-open Support.Pervasive
-open Support.Error
+open Support
 open Syntax
 open Arg 
 

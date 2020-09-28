@@ -1,6 +1,5 @@
 open Format
-open Support.Pervasive
-open Support.Error
+open Support
 open Syntax
 open Arg 
 open Eval
@@ -33,6 +32,6 @@ let main' () =
             |   e           -> raise e
     done
 
-let _ = Printexc.catch (fun () -> try main' (); 0 with Exit x -> x) () 
+let _ = Printexc.catch (fun () -> try main' (); 0 with Exit -> raise Exit) () 
 
 

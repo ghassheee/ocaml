@@ -1,6 +1,5 @@
 open Format
-open Support.Error
-open Support.Pervasive
+open Support
 
 
 (* -------------------------------------------------- *) 

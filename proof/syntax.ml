@@ -7,6 +7,7 @@ open Support
 type ty     =
     | TyArr of ty * ty
     | TyBool
+    | TyNat 
 
 type term =
     | TmVar of info * int * int 
@@ -121,6 +122,7 @@ and printty_ArrowType outer     = function
     | tyT                       -> printty_AType outer tyT
 and printty_AType outer         = function
     | TyBool                    -> pr "Bool" 
+    | TyNat                     -> pr "Nat" 
     | tyT                       -> pr "("; printty_Type outer tyT; pr ")"
 ;;
 

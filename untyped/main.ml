@@ -1,6 +1,5 @@
 open Format
-open Support.Pervasive
-open Support.Error
+open Support
 open Syntax
 open Arg 
 open Eval
@@ -55,8 +54,7 @@ let res             = Printexc.catch (
     fun () -> 
         try main();0 
         with 
-            Exit 10 -> flush stdout; main () ; 10 
-          | Exit x -> x
+            Exit -> flush stdout; main () ; 10
 
     ) ()
 let ()              = print_flush()

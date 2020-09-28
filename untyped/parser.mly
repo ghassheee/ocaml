@@ -1,8 +1,7 @@
 /*  Yacc grammar for the parser. */
 
 %{
-open Support.Error
-open Support.Pervasive
+open Support
 open Syntax
 open Format
 open Eval
@@ -17,64 +16,64 @@ open Eval
  * constant values -- more info is provided. */
 
 /* Keyword tokens */
-%token <Support.Error.info> LAMBDA
-%token <Support.Error.info> IF
-%token <Support.Error.info> THEN
-%token <Support.Error.info> ELSE
-%token <Support.Error.info> TRUE
-%token <Support.Error.info> FALSE
-%token <Support.Error.info> SUCC
-%token <Support.Error.info> PRED
-%token <Support.Error.info> ISZERO
+%token <Support.info> LAMBDA
+%token <Support.info> IF
+%token <Support.info> THEN
+%token <Support.info> ELSE
+%token <Support.info> TRUE
+%token <Support.info> FALSE
+%token <Support.info> SUCC
+%token <Support.info> PRED
+%token <Support.info> ISZERO
 
 /* Identifier and constant value tokens */
-%token <string  Support.Error.withinfo> UCID  /* uppercase-initial */
-%token <string  Support.Error.withinfo> LCID  /* lowercase/symbolic-initial */
-%token <int     Support.Error.withinfo> INTV
-%token <float   Support.Error.withinfo> FLOATV
-%token <string  Support.Error.withinfo> STRINGV
+%token <string  Support.withinfo> UCID  /* uppercase-initial */
+%token <string  Support.withinfo> LCID  /* lowercase/symbolic-initial */
+%token <int     Support.withinfo> INTV
+%token <float   Support.withinfo> FLOATV
+%token <string  Support.withinfo> STRINGV
 
 /* Symbolic tokens */
-%token <Support.Error.info> APOSTROPHE
-%token <Support.Error.info> DQUOTE
-%token <Support.Error.info> ARROW
-%token <Support.Error.info> BANG
-%token <Support.Error.info> BARGT
-%token <Support.Error.info> BARRCURLY
-%token <Support.Error.info> BARRSQUARE
-%token <Support.Error.info> COLON
-%token <Support.Error.info> COLONCOLON
-%token <Support.Error.info> COLONEQ
-%token <Support.Error.info> COLONHASH
-%token <Support.Error.info> COMMA
-%token <Support.Error.info> DARROW
-%token <Support.Error.info> DDARROW
-%token <Support.Error.info> DOT
-%token <Support.Error.info> EOF
-%token <Support.Error.info> EQ
-%token <Support.Error.info> EQEQ
-%token <Support.Error.info> EXISTS
-%token <Support.Error.info> GT
-%token <Support.Error.info> HASH
-%token <Support.Error.info> LCURLY
-%token <Support.Error.info> LCURLYBAR
-%token <Support.Error.info> LEFTARROW
-%token <Support.Error.info> LPAREN
-%token <Support.Error.info> LSQUARE
-%token <Support.Error.info> LSQUAREBAR
-%token <Support.Error.info> LT
-%token <Support.Error.info> RCURLY
-%token <Support.Error.info> RPAREN
-%token <Support.Error.info> RSQUARE
-%token <Support.Error.info> SEMI        /* semicolon */ 
-%token <Support.Error.info> SLASH
-%token <Support.Error.info> STAR
-%token <Support.Error.info> TRIANGLE
-%token <Support.Error.info> USCORE
-%token <Support.Error.info> VBAR
-%token <Support.Error.info> NEWLINE
-%token <Support.Error.info> DOUBLESEMI
-%token <Support.Error.info> HOGE
+%token <Support.info> APOSTROPHE
+%token <Support.info> DQUOTE
+%token <Support.info> ARROW
+%token <Support.info> BANG
+%token <Support.info> BARGT
+%token <Support.info> BARRCURLY
+%token <Support.info> BARRSQUARE
+%token <Support.info> COLON
+%token <Support.info> COLONCOLON
+%token <Support.info> COLONEQ
+%token <Support.info> COLONHASH
+%token <Support.info> COMMA
+%token <Support.info> DARROW
+%token <Support.info> DDARROW
+%token <Support.info> DOT
+%token <Support.info> EOF
+%token <Support.info> EQ
+%token <Support.info> EQEQ
+%token <Support.info> EXISTS
+%token <Support.info> GT
+%token <Support.info> HASH
+%token <Support.info> LCURLY
+%token <Support.info> LCURLYBAR
+%token <Support.info> LEFTARROW
+%token <Support.info> LPAREN
+%token <Support.info> LSQUARE
+%token <Support.info> LSQUAREBAR
+%token <Support.info> LT
+%token <Support.info> RCURLY
+%token <Support.info> RPAREN
+%token <Support.info> RSQUARE
+%token <Support.info> SEMI        /* semicolon */ 
+%token <Support.info> SLASH
+%token <Support.info> STAR
+%token <Support.info> TRIANGLE
+%token <Support.info> USCORE
+%token <Support.info> VBAR
+%token <Support.info> NEWLINE
+%token <Support.info> DOUBLESEMI
+%token <Support.info> HOGE
 /* The returned type of a toplevel is Syntax.command list. */
 %start toplevel
 %start input 
@@ -137,7 +136,7 @@ ATerm :
     | FALSE                         { fun ctx   -> TmFalse($1) }
     | INTV                          { fun ctx   -> let rec f = function
                                                       | 0 -> TmZero($1.i)
-                                                      | n -> TmSucc($1.i, f (n-1))
+                                                      | n -> print_endline "succ"; TmSucc($1.i, f (n-1))
                                                    in f $1.v }
 
 
