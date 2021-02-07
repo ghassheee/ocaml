@@ -1,10 +1,11 @@
 {
-open Support.Error
+open Support
 
 let reservedWords = [
   (* Keywords *)
-    ("Sigma",       fun i -> Parser.SIGMA i);
-    ("Pi",       fun i -> Parser.PI i); 
+    ("Sigma",   fun i -> Parser.SIGMA i);
+    ("Pi",      fun i -> Parser.PI i); 
+    ("Π",      fun i -> Parser.PI i); 
     ("Univ",    fun i -> Parser.UNIV i);
     ("letrec",  fun i -> Parser.LETREC i);
     ("where",   fun i -> Parser.WHERE i);
@@ -54,7 +55,7 @@ let reservedWords = [
     ("|>",      fun i -> Parser.BARGT i);
     ("|]",      fun i -> Parser.BARRSQUARE i);
     ("\n",      fun i -> Parser.NEWLINE i); 
-    (";;",      fun i -> Parser.DOUBLESEMI i); 
+    (";;",      fun i -> Parser.DSEMI i); 
 
   (* Special compound symbols: *)
     (":=",      fun i -> Parser.COLONEQ i);
@@ -136,11 +137,11 @@ rule token              = parse
 | op+                       { createID (info lexbuf) (text lexbuf)                  }
 | symbol                    { createID (info lexbuf) (text lexbuf)                  }
 | "\""                      { resetStr(); startLex:=info lexbuf; string lexbuf      } 
-| ";;" nl                   { Parser.DOUBLESEMI(info lexbuf)                        }
+| ";;" nl                   { Parser.DSEMI(info lexbuf)                             }
 | eof                       { Parser.EOF(info lexbuf)                               }
-| comment_end               { err (info lexbuf) "Unmatched end of comment"        } 
+| comment_end               { err (info lexbuf) "Unmatched end of comment"          } 
 | comment                   { depth:=1;startLex:=info lexbuf;comment lexbuf;token lexbuf } 
-| _                         { err (info lexbuf) "Illegal character"               }
+| _                         { err (info lexbuf) "Illegal character"                 }
 
 and show                = parse
 | "context"                 { Parser.SHOWCONTEXT(info lexbuf)                       }
@@ -149,13 +150,13 @@ and show                = parse
 and comment             = parse
 | comment                   { depth:=succ !depth; comment lexbuf                    } 
 | comment_end               { depth:=pred !depth; if !depth>0 then comment lexbuf   } 
-| eof                       { err (!startLex) "Comment not terminated"            } 
+| eof                       { err (!startLex) "Comment not terminated"              } 
 | [^ '\n']                  { comment lexbuf                                        }
 | "\n"                      { newline lexbuf; comment lexbuf                        } 
 
 and string              = parse
 | '"'                       { Parser.STRINGV{i= !startLex; v=getStr()}              }
-| eof                       { err(!startLex)"String not terminated"               } 
+| eof                       { err(!startLex)"String not terminated"                 } 
 | '\\'                      { addStr(escaped lexbuf)              ; string lexbuf   } 
 | '\n'                      { addStr('\n') ; newline lexbuf       ; string lexbuf   } 
 | _                         { addStr(Lexing.lexeme_char lexbuf 0) ; string lexbuf   } 

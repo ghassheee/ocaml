@@ -37,7 +37,7 @@ let rec typeof ctx          = function
 
 let prbindingty ctx = function
     | NameBind                  -> ()
-    | VarBind(tyT)              -> pr ": "; printty tyT 
+    | VarBind(tyT)              -> pr ": "; pr_ty tyT 
 
 
 

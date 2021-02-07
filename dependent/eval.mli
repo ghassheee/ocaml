@@ -1,8 +1,7 @@
 open Format
-open Support.Pervasive
-open Support.Error
+open Support
 open Syntax
 
 val eval            : context -> term -> term 
-val process_command : context -> command -> context 
-val process_commands: context -> command list -> context 
+val process_cmd     : context -> command -> context 
+val process_cmds    : context -> command list -> context 

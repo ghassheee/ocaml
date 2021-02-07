@@ -102,8 +102,6 @@ let asm_jump = function
 exception ParseErrorACommand
 exception OutOfMemory 
 
-let a_cmd = ref (Bytes.create 16)
-
 let rec exp n m = if m<= 0 then 1 else n * exp n(m-1) 
 
 let rec binary_of_int i = function 

@@ -4,7 +4,7 @@ open Parser
 
 let reservedWords = [
   (* Keywords *)
-    ("Bool",    fun i -> BOOL i);
+  ("Bool",    fun i -> BOOL i);
   ("\\",    fun i -> LAMBDA i);
   ("if",    fun i -> IF i);
   ("then",  fun i -> THEN i);
@@ -47,7 +47,7 @@ let reservedWords = [
   ("|>",    fun i -> BARGT i);
   ("|]",    fun i -> BARRSQUARE i);
   ("\n",    fun i -> NEWLINE i); 
-  (";;",    fun i -> DOUBLESEMI i); 
+  (";;",    fun i -> DSEMI i); 
 
   (* Special compound symbols: *)
   (":=",    fun i -> COLONEQ i);
@@ -132,7 +132,7 @@ rule token = parse
 | "[|" | "|]" | "=="    { createID (info lexbuf) (text lexbuf) }
 | op+                   { createID (info lexbuf) (text lexbuf) }
 | symbol                { createID (info lexbuf) (text lexbuf) }
-| ";;" nl               { HOGE(info lexbuf) }
+| ";;" nl               { DSEMI(info lexbuf) }
 | eof                   { EOF(info lexbuf)   }
 | comment_end           { error (info lexbuf) "Unmatched end of comment" } 
 | comment               { depth := 1; startLex := info lexbuf; comment lexbuf; token lexbuf } 

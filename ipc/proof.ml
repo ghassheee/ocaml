@@ -195,6 +195,7 @@ let add_proof_var_seq (ctx,p) = add_proof_var_ctx ctx, add_proof_var p
 let rec find prop = function 
     | []                    -> None 
     | (proof,prop')::rest   -> if eq prop prop' then Some proof else find prop rest 
+
 (*
 let rec typeof proof = function 
     | []                    -> None 

@@ -1,14 +1,13 @@
 open Format
 open Arg 
 
-open Support.Pervasive
-open Support.Error
+open Support
 open Syntax
 open Type
 open Eval
 
-let interpreter lexbuf  = Parser.input      Lexer.token lexbuf 
-let compiler    lexbuf  = Parser.toplevel   Lexer.token lexbuf
+let interpreter lexbuf  = Parser.repl       Lexer.token lexbuf 
+let compiler    lexbuf  = Parser.compiler   Lexer.token lexbuf
 
 let parse' machine in_channel =   (* machine -> in_channel -> command list *) 
     let lexbuf              =   Lexing.from_channel in_channel  in
@@ -46,7 +45,7 @@ let parseFile f         =  (* string -> command list *)
 
 let process_file str ctx    =  (* string -> unit *)  (* print the evals of the list of commands *)  
     let cmds                =   parseFile str in
-    let _                   =   process_commands ctx cmds in () 
+    let _                   =   process_cmds ctx cmds in () 
 
 
 let main ()         =   parseArgs (); 

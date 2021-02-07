@@ -1,5 +1,4 @@
-open Support.Pervasive
-open Support.Error
+open Support
 open Syntax
 open Type
 
@@ -42,7 +41,7 @@ let checkbind fi ctx        = function
     | BindAbb(t,Some(tyT))      ->  if tyeqv ctx(typeof ctx t)tyT then BindAbb(t,Some(tyT))else err fi"TyAbbErr"
     | bind                      ->  bind  
 
-let rec process_command ctx = function 
+let rec process_cmd ctx     = function 
     | Eval(fi,t)                ->
             pr_tm ctx t;pn();
             pe"----------------------------------------------------";
@@ -56,10 +55,10 @@ let rec process_command ctx = function
             let bind'' = evalbind ctx bind' in 
             pr x;pr" ";prbindty ctx bind'';pn();addbind ctx x bind'' 
 
-let rec process_commands ctx = function 
+let rec process_cmds ctx     = function 
     | []                        ->  ctx 
     | cmd::cmds                 ->  oobox0;
-                                    let ctx' = process_command ctx cmd in 
+                                    let ctx' = process_cmd ctx cmd in     
                                     Format.print_flush();
-                                    process_commands ctx' cmds 
+                                    process_cmds ctx' cmds
 

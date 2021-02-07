@@ -7,7 +7,6 @@
 (* ------------------------------------------------------------------------ *)
 (* Some pervasive abbreviations -- opened everywhere by convention *)
 
-module Pervasive : sig
   val pr : string   -> unit
   val ps                : unit      -> unit
   val pe                : string    -> unit 
@@ -15,15 +14,10 @@ module Pervasive : sig
   val pi                : int       -> unit 
   val pb                : int -> int -> unit 
   val getbind_err_msg   : int -> int -> string
-end  
 
 (* ------------------------------------------------------------------------ *)
 (* Error printing utilities -- opened everywhere by convention *)
 
-module Error : sig
-  (* An exception raised by the low-level error printer; exported
-     here so that it can be caught in module Main and converted into
-     an exit status for the whole program. *)
   exception Exit of int
 
   (* An element of the type info represents a "file position": a 
@@ -55,6 +49,5 @@ module Error : sig
   (* Variants that print a message but do not fail afterwards *)
   val warning : string -> unit
   val warningAt : info -> string -> unit
-end
 
 
