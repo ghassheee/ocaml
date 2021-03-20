@@ -123,8 +123,7 @@ let pe = print_endline
 
 %start toplevel
 %start input 
-%type <Syntax.context -> Eval.store -> Syntax.uvargenerator -> Syntax.constr -> 
-    (Syntax.command list * Syntax.context * Eval.store * Syntax.uvargenerator * Syntax.constr)> input 
+%type <Syntax.context -> Eval.store -> Syntax.uvargenerator -> Syntax.constr -> (Syntax.command list * Syntax.context * Eval.store * Syntax.uvargenerator * Syntax.constr)> input 
 %type <Syntax.context -> (Syntax.command list * Syntax.context)> toplevel
 
 %%

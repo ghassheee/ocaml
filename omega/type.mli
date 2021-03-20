@@ -5,4 +5,3 @@ open Arg
 
 
 val typeof          : context -> term -> ty
-val prbindty        : context -> binding -> unit 

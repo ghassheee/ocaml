@@ -2,58 +2,58 @@
 open Support
 
 let reservedWords = [
-  (* Keywords *)
-  ("Bool",    fun i -> Parser.BOOL i);
-  ("Nat",   fun i -> Parser.NAT i);
-  ("\\",    fun i -> Parser.LAMBDA i);
-  ("if",    fun i -> Parser.IF i);
-  ("then",  fun i -> Parser.THEN i);
-  ("else",  fun i -> Parser.ELSE i);
-  ("true",  fun i -> Parser.TRUE i);
-  ("false", fun i -> Parser.FALSE i);
-  ("succ",  fun i -> Parser.SUCC i);
-  ("pred",  fun i -> Parser.PRED i);
-  ("iszero",fun i -> Parser.ISZERO i);
-  
-  (* Symbols *)
-  ("_",     fun i -> Parser.USCORE i);
-  ("'",     fun i -> Parser.APOSTROPHE i);
-  ("\"",    fun i -> Parser.DQUOTE i);
-  ("!",     fun i -> Parser.BANG i);
-  ("#",     fun i -> Parser.HASH i);
-  ("$",     fun i -> Parser.TRIANGLE i);
-  ("*",     fun i -> Parser.STAR i);
-  ("|",     fun i -> Parser.VBAR i);
-  (".",     fun i -> Parser.DOT i);
-  (";",     fun i -> Parser.SEMI i);
-  (",",     fun i -> Parser.COMMA i);
-  ("/",     fun i -> Parser.SLASH i);
-  (":",     fun i -> Parser.COLON i);
-  ("::",    fun i -> Parser.COLONCOLON i);
-  ("=",     fun i -> Parser.EQ i);
-  ("==",    fun i -> Parser.EQEQ i);
-  ("[",     fun i -> Parser.LSQUARE i); 
-  ("<",     fun i -> Parser.LT i);
-  ("{",     fun i -> Parser.LCURLY i); 
-  ("(",     fun i -> Parser.LPAREN i); 
-  ("<-",    fun i -> Parser.LEFTARROW i); 
-  ("{|",    fun i -> Parser.LCURLYBAR i); 
-  ("[|",    fun i -> Parser.LSQUAREBAR i); 
-  ("}",     fun i -> Parser.RCURLY i);
-  (")",     fun i -> Parser.RPAREN i);
-  ("]",     fun i -> Parser.RSQUARE i);
-  (">",     fun i -> Parser.GT i);
-  ("|}",    fun i -> Parser.BARRCURLY i);
-  ("|>",    fun i -> Parser.BARGT i);
-  ("|]",    fun i -> Parser.BARRSQUARE i);
-  ("\n",    fun i -> Parser.NEWLINE i); 
-  (";;",    fun i -> Parser.DOUBLESEMI i); 
+    (* Keywords *)
+    ("Bool",  fun i -> Parser.BOOL i);
+    ("Nat",   fun i -> Parser.NAT i);
+    ("\\",    fun i -> Parser.LAMBDA i);
+    ("if",    fun i -> Parser.IF i);
+    ("then",  fun i -> Parser.THEN i);
+    ("else",  fun i -> Parser.ELSE i);
+    ("true",  fun i -> Parser.TRUE i);
+    ("false", fun i -> Parser.FALSE i);
+    ("succ",  fun i -> Parser.SUCC i);
+    ("pred",  fun i -> Parser.PRED i);
+    ("iszero",fun i -> Parser.ISZERO i);
+    
+    (* Symbols *)
+    ("_",     fun i -> Parser.USCORE i);
+    ("'",     fun i -> Parser.APOSTROPHE i);
+    ("\"",    fun i -> Parser.DQUOTE i);
+    ("!",     fun i -> Parser.BANG i);
+    ("#",     fun i -> Parser.HASH i);
+    ("$",     fun i -> Parser.TRIANGLE i);
+    ("*",     fun i -> Parser.STAR i);
+    ("|",     fun i -> Parser.VBAR i);
+    (".",     fun i -> Parser.DOT i);
+    (";",     fun i -> Parser.SEMI i);
+    (",",     fun i -> Parser.COMMA i);
+    ("/",     fun i -> Parser.SLASH i);
+    (":",     fun i -> Parser.COLON i);
+    ("::",    fun i -> Parser.COLONCOLON i);
+    ("=",     fun i -> Parser.EQ i);
+    ("==",    fun i -> Parser.EQEQ i);
+    ("[",     fun i -> Parser.LSQUARE i); 
+    ("<",     fun i -> Parser.LT i);
+    ("{",     fun i -> Parser.LCURLY i); 
+    ("(",     fun i -> Parser.LPAREN i); 
+    ("<-",    fun i -> Parser.LEFTARROW i); 
+    ("{|",    fun i -> Parser.LCURLYBAR i); 
+    ("[|",    fun i -> Parser.LSQUAREBAR i); 
+    ("}",     fun i -> Parser.RCURLY i);
+    (")",     fun i -> Parser.RPAREN i);
+    ("]",     fun i -> Parser.RSQUARE i);
+    (">",     fun i -> Parser.GT i);
+    ("|}",    fun i -> Parser.BARRCURLY i);
+    ("|>",    fun i -> Parser.BARGT i);
+    ("|]",    fun i -> Parser.BARRSQUARE i);
+    ("\n",    fun i -> Parser.NEWLINE i); 
+    (";;",    fun i -> Parser.DSEMI i); 
 
-  (* Special compound symbols: *)
-  (":=",    fun i -> Parser.COLONEQ i);
-  ("->",    fun i -> Parser.ARROW i);
-  ("=>",    fun i -> Parser.DARROW i);
-  ("==>",   fun i -> Parser.DDARROW i);
+    (* Special compound symbols: *)
+    (":=",    fun i -> Parser.COLONEQ i);
+    ("->",    fun i -> Parser.ARROW i);
+    ("=>",    fun i -> Parser.DARROW i);
+    ("==>",   fun i -> Parser.DDARROW i);
 ]
 
 (* Support functions *)
@@ -76,7 +76,7 @@ let lineno                  =   ref 1
 and depth                   =   ref 0
 and start                   =   ref 0
 and filename                =   ref ""
-and startLex                =   ref dummyinfo
+and startLex                =   ref dummy
 let create inFile stream    =   if not (Filename.is_implicit inFile) 
                                     then filename   := inFile
                                     else filename   := Filename.concat (Sys.getcwd()) inFile;
@@ -132,7 +132,7 @@ rule token = parse
 | "[|" | "|]" | "=="    { createID (info lexbuf) (text lexbuf) }
 | op+                   { createID (info lexbuf) (text lexbuf) }
 | symbol                { createID (info lexbuf) (text lexbuf) }
-| ";;" nl               { Parser.HOGE(info lexbuf) }
+| ";;" nl               { Parser.DSEMI(info lexbuf) }
 | eof                   { Parser.EOF(info lexbuf)   }
 | comment_end           { error (info lexbuf) "Unmatched end of comment" } 
 | comment               { depth := 1; startLex := info lexbuf; comment lexbuf; token lexbuf } 
