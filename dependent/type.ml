@@ -42,7 +42,9 @@ and typeof ctx   t      =
         let tyT1 = typeof ctx t1 in
         let tyT2 = typeof ctx t2 in (match tyT1 with           
         | Ap(_,Ap(_,Pi(_),tyA),Lam(_,_,_,tyB))-> 
-                if tyeqv ctx tyT2 tyA then let tyT = tmSubstTop t1 tyB in pr"]";pn();tyT else err fi"D-APP Fail" 
+                if tyeqv ctx tyT2 tyA 
+                    then let tyT = tmSubstTop t1 tyB in pr"]";pn();tyT 
+                    else err fi"D-APP Fail" 
         | _                                     ->  err fi "Π-type expected" )
     | Bool(fi)                  ->  p "T-BOOL        : "; Univ(fi,0) 
     | Nat(fi)                   ->  p "T-NAT         : "; Univ(fi,0) 

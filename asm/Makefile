@@ -1,18 +1,19 @@
+OCAMLC=ocamlc -safe-string
 
 all: ml  
-	ocamlc -o Asm support.cmo lexer.cmo parser.cmo syntax.cmo asm.cmo 
+	${OCAMLC} -o Asm support.cmo lexer.cmo parser.cmo syntax.cmo asm.cmo 
 
 parser:	
-	ocamlc -c support.ml 
-	ocamlc -c syntax.ml
+	${OCAMLC} -c support.ml 
+	${OCAMLC} -c syntax.ml
 	ocamlyacc parser.mly 
-	ocamlc -c parser.mli
+	${OCAMLC} -c parser.mli
 	
 lexer: parser  
 	ocamllex lexer.mll
 
 ml: lexer 
-	ocamlc -c lexer.ml parser.ml syntax.ml asm.ml 
+	${OCAMLC} -c lexer.ml parser.ml syntax.ml asm.ml 
 
 
 clean: 
