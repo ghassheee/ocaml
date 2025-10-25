@@ -4,7 +4,7 @@ if false then true else false;
 
 (\x:Bool->Bool.x false) (\x:Bool.x) ;
 (\x:Bool.x) true;
-iszero (pred (succ 2));
+iszero (pred (succ 100));
 
 let projx = (\r:{x:Nat,y:Nat,z:Nat}.r.x) in projx {x=2,y=4,z=1} ;
 (\x:String.x) "hoge";

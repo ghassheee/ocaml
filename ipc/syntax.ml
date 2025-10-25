@@ -189,7 +189,7 @@ and pr_AProp ctx    = function
 *)
 
 let rec pr_Proof = function
-    | Var(PId(_,s))         ->  pr (String.lowercase s)
+    | Var(PId(_,s))         ->  pr (String.lowercase_ascii s)
     | Var(PVar(_,i,_))      ->  pr "X";pr (string_of_int i) 
     | Var(p)                ->  pr "x";pr_Prop p
     | Any(p)                ->  pr "∅(";pr_Prop p;pr ")"

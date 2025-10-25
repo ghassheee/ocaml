@@ -111,6 +111,7 @@ let rec subtype ctx tyS tyT     =
     | TySource(tyS'),TySource(tyT')     ->  subtype ctx tyS' tyT'
     | TyRef(tyS'),TySink(tyT')          ->  subtype ctx tyT' tyS'
     | TySink(tyS'),TySink(tyT')         ->  subtype ctx tyT' tyS' 
+    | tyS, tyT                          ->  tyeqv ctx tyS tyT
     | _,_                               ->  false 
 
 

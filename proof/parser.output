@@ -1,0 +1,715 @@
+   0  $accept : %entry% $end
+
+   1  repl :
+   2       | repl block
+
+   3  block : Command
+   4        | block SEMI Command
+   5        | block DSEMI
+   6        | block EOF
+
+   7  line : EOF
+   8       | Command SEMI line
+
+   9  Command : Tm
+  10          | LCID Binder
+  11          | UCID Binder
+
+  12  Binder : COLON Type
+
+  13  Type : ArrowType
+
+  14  AType : LPAREN Type RPAREN
+  15        | BOOL
+
+  16  ArrowType : AType ARROW ArrowType
+  17            | AType
+
+  18  Tm : AppTm
+  19     | LAMBDA LCID DOT Tm
+  20     | LAMBDA LCID COLON Type DOT Tm
+  21     | IF Tm THEN Tm ELSE Tm
+
+  22  AppTm : ATm
+  23        | AppTm ATm
+  24        | SUCC ATm
+  25        | PRED ATm
+  26        | ISZERO ATm
+
+  27  ATm : LPAREN Tm RPAREN
+  28      | LCID
+  29      | TRUE
+  30      | FALSE
+  31      | INTV
+
+  32  %entry% : '\001' repl
+  33          | '\002' line
+
+state 0
+	$accept : . %entry% $end  (0)
+
+	'\001'  shift 1
+	'\002'  shift 2
+	.  error
+
+	%entry%  goto 3
+
+
+state 1
+	%entry% : '\001' . repl  (32)
+	repl : .  (1)
+
+	.  reduce 1
+
+	repl  goto 4
+
+
+state 2
+	%entry% : '\002' . line  (33)
+
+	LAMBDA  shift 5
+	IF  shift 6
+	TRUE  shift 7
+	FALSE  shift 8
+	SUCC  shift 9
+	PRED  shift 10
+	ISZERO  shift 11
+	UCID  shift 12
+	LCID  shift 13
+	INTV  shift 14
+	LPAREN  shift 15
+	EOF  shift 16
+	.  error
+
+	line  goto 17
+	Command  goto 18
+	Tm  goto 19
+	AppTm  goto 20
+	ATm  goto 21
+
+
+state 3
+	$accept : %entry% . $end  (0)
+
+	$end  accept
+
+
+state 4
+	repl : repl . block  (2)
+	%entry% : '\001' repl .  (32)
+
+	LAMBDA  shift 5
+	IF  shift 6
+	TRUE  shift 7
+	FALSE  shift 8
+	SUCC  shift 9
+	PRED  shift 10
+	ISZERO  shift 11
+	UCID  shift 12
+	LCID  shift 13
+	INTV  shift 14
+	LPAREN  shift 15
+	$end  reduce 32
+
+	block  goto 22
+	Command  goto 23
+	Tm  goto 19
+	AppTm  goto 20
+	ATm  goto 21
+
+
+state 5
+	Tm : LAMBDA . LCID DOT Tm  (19)
+	Tm : LAMBDA . LCID COLON Type DOT Tm  (20)
+
+	LCID  shift 24
+	.  error
+
+
+state 6
+	Tm : IF . Tm THEN Tm ELSE Tm  (21)
+
+	LAMBDA  shift 5
+	IF  shift 6
+	TRUE  shift 7
+	FALSE  shift 8
+	SUCC  shift 9
+	PRED  shift 10
+	ISZERO  shift 11
+	LCID  shift 25
+	INTV  shift 14
+	LPAREN  shift 15
+	.  error
+
+	Tm  goto 26
+	AppTm  goto 20
+	ATm  goto 21
+
+
+state 7
+	ATm : TRUE .  (29)
+
+	.  reduce 29
+
+
+state 8
+	ATm : FALSE .  (30)
+
+	.  reduce 30
+
+
+state 9
+	AppTm : SUCC . ATm  (24)
+
+	TRUE  shift 7
+	FALSE  shift 8
+	LCID  shift 25
+	INTV  shift 14
+	LPAREN  shift 15
+	.  error
+
+	ATm  goto 27
+
+
+state 10
+	AppTm : PRED . ATm  (25)
+
+	TRUE  shift 7
+	FALSE  shift 8
+	LCID  shift 25
+	INTV  shift 14
+	LPAREN  shift 15
+	.  error
+
+	ATm  goto 28
+
+
+state 11
+	AppTm : ISZERO . ATm  (26)
+
+	TRUE  shift 7
+	FALSE  shift 8
+	LCID  shift 25
+	INTV  shift 14
+	LPAREN  shift 15
+	.  error
+
+	ATm  goto 29
+
+
+state 12
+	Command : UCID . Binder  (11)
+
+	COLON  shift 30
+	.  error
+
+	Binder  goto 31
+
+
+state 13
+	Command : LCID . Binder  (10)
+	ATm : LCID .  (28)
+
+	COLON  shift 30
+	$end  reduce 28
+	LAMBDA  reduce 28
+	IF  reduce 28
+	TRUE  reduce 28
+	FALSE  reduce 28
+	SUCC  reduce 28
+	PRED  reduce 28
+	ISZERO  reduce 28
+	UCID  reduce 28
+	LCID  reduce 28
+	INTV  reduce 28
+	LPAREN  reduce 28
+	SEMI  reduce 28
+	DSEMI  reduce 28
+	EOF  reduce 28
+
+	Binder  goto 32
+
+
+state 14
+	ATm : INTV .  (31)
+
+	.  reduce 31
+
+
+state 15
+	ATm : LPAREN . Tm RPAREN  (27)
+
+	LAMBDA  shift 5
+	IF  shift 6
+	TRUE  shift 7
+	FALSE  shift 8
+	SUCC  shift 9
+	PRED  shift 10
+	ISZERO  shift 11
+	LCID  shift 25
+	INTV  shift 14
+	LPAREN  shift 15
+	.  error
+
+	Tm  goto 33
+	AppTm  goto 20
+	ATm  goto 21
+
+
+state 16
+	line : EOF .  (7)
+
+	.  reduce 7
+
+
+state 17
+	%entry% : '\002' line .  (33)
+
+	.  reduce 33
+
+
+state 18
+	line : Command . SEMI line  (8)
+
+	SEMI  shift 34
+	.  error
+
+
+state 19
+	Command : Tm .  (9)
+
+	.  reduce 9
+
+
+20: shift/reduce conflict (shift 7, reduce 18) on TRUE
+20: shift/reduce conflict (shift 8, reduce 18) on FALSE
+20: shift/reduce conflict (shift 25, reduce 18) on LCID
+20: shift/reduce conflict (shift 14, reduce 18) on INTV
+20: shift/reduce conflict (shift 15, reduce 18) on LPAREN
+state 20
+	Tm : AppTm .  (18)
+	AppTm : AppTm . ATm  (23)
+
+	TRUE  shift 7
+	FALSE  shift 8
+	LCID  shift 25
+	INTV  shift 14
+	LPAREN  shift 15
+	$end  reduce 18
+	LAMBDA  reduce 18
+	IF  reduce 18
+	THEN  reduce 18
+	ELSE  reduce 18
+	SUCC  reduce 18
+	PRED  reduce 18
+	ISZERO  reduce 18
+	UCID  reduce 18
+	RPAREN  reduce 18
+	SEMI  reduce 18
+	DSEMI  reduce 18
+	EOF  reduce 18
+
+	ATm  goto 35
+
+
+state 21
+	AppTm : ATm .  (22)
+
+	.  reduce 22
+
+
+state 22
+	repl : repl block .  (2)
+	block : block . SEMI Command  (4)
+	block : block . DSEMI  (5)
+	block : block . EOF  (6)
+
+	SEMI  shift 36
+	DSEMI  shift 37
+	EOF  shift 38
+	$end  reduce 2
+	LAMBDA  reduce 2
+	IF  reduce 2
+	TRUE  reduce 2
+	FALSE  reduce 2
+	SUCC  reduce 2
+	PRED  reduce 2
+	ISZERO  reduce 2
+	UCID  reduce 2
+	LCID  reduce 2
+	INTV  reduce 2
+	LPAREN  reduce 2
+
+
+state 23
+	block : Command .  (3)
+
+	.  reduce 3
+
+
+state 24
+	Tm : LAMBDA LCID . DOT Tm  (19)
+	Tm : LAMBDA LCID . COLON Type DOT Tm  (20)
+
+	COLON  shift 39
+	DOT  shift 40
+	.  error
+
+
+state 25
+	ATm : LCID .  (28)
+
+	.  reduce 28
+
+
+state 26
+	Tm : IF Tm . THEN Tm ELSE Tm  (21)
+
+	THEN  shift 41
+	.  error
+
+
+state 27
+	AppTm : SUCC ATm .  (24)
+
+	.  reduce 24
+
+
+state 28
+	AppTm : PRED ATm .  (25)
+
+	.  reduce 25
+
+
+state 29
+	AppTm : ISZERO ATm .  (26)
+
+	.  reduce 26
+
+
+state 30
+	Binder : COLON . Type  (12)
+
+	BOOL  shift 42
+	LPAREN  shift 43
+	.  error
+
+	Type  goto 44
+	ArrowType  goto 45
+	AType  goto 46
+
+
+state 31
+	Command : UCID Binder .  (11)
+
+	.  reduce 11
+
+
+state 32
+	Command : LCID Binder .  (10)
+
+	.  reduce 10
+
+
+state 33
+	ATm : LPAREN Tm . RPAREN  (27)
+
+	RPAREN  shift 47
+	.  error
+
+
+state 34
+	line : Command SEMI . line  (8)
+
+	LAMBDA  shift 5
+	IF  shift 6
+	TRUE  shift 7
+	FALSE  shift 8
+	SUCC  shift 9
+	PRED  shift 10
+	ISZERO  shift 11
+	UCID  shift 12
+	LCID  shift 13
+	INTV  shift 14
+	LPAREN  shift 15
+	EOF  shift 16
+	.  error
+
+	line  goto 48
+	Command  goto 18
+	Tm  goto 19
+	AppTm  goto 20
+	ATm  goto 21
+
+
+state 35
+	AppTm : AppTm ATm .  (23)
+
+	.  reduce 23
+
+
+state 36
+	block : block SEMI . Command  (4)
+
+	LAMBDA  shift 5
+	IF  shift 6
+	TRUE  shift 7
+	FALSE  shift 8
+	SUCC  shift 9
+	PRED  shift 10
+	ISZERO  shift 11
+	UCID  shift 12
+	LCID  shift 13
+	INTV  shift 14
+	LPAREN  shift 15
+	.  error
+
+	Command  goto 49
+	Tm  goto 19
+	AppTm  goto 20
+	ATm  goto 21
+
+
+state 37
+	block : block DSEMI .  (5)
+
+	.  reduce 5
+
+
+state 38
+	block : block EOF .  (6)
+
+	.  reduce 6
+
+
+state 39
+	Tm : LAMBDA LCID COLON . Type DOT Tm  (20)
+
+	BOOL  shift 42
+	LPAREN  shift 43
+	.  error
+
+	Type  goto 50
+	ArrowType  goto 45
+	AType  goto 46
+
+
+state 40
+	Tm : LAMBDA LCID DOT . Tm  (19)
+
+	LAMBDA  shift 5
+	IF  shift 6
+	TRUE  shift 7
+	FALSE  shift 8
+	SUCC  shift 9
+	PRED  shift 10
+	ISZERO  shift 11
+	LCID  shift 25
+	INTV  shift 14
+	LPAREN  shift 15
+	.  error
+
+	Tm  goto 51
+	AppTm  goto 20
+	ATm  goto 21
+
+
+state 41
+	Tm : IF Tm THEN . Tm ELSE Tm  (21)
+
+	LAMBDA  shift 5
+	IF  shift 6
+	TRUE  shift 7
+	FALSE  shift 8
+	SUCC  shift 9
+	PRED  shift 10
+	ISZERO  shift 11
+	LCID  shift 25
+	INTV  shift 14
+	LPAREN  shift 15
+	.  error
+
+	Tm  goto 52
+	AppTm  goto 20
+	ATm  goto 21
+
+
+state 42
+	AType : BOOL .  (15)
+
+	.  reduce 15
+
+
+state 43
+	AType : LPAREN . Type RPAREN  (14)
+
+	BOOL  shift 42
+	LPAREN  shift 43
+	.  error
+
+	Type  goto 53
+	ArrowType  goto 45
+	AType  goto 46
+
+
+state 44
+	Binder : COLON Type .  (12)
+
+	.  reduce 12
+
+
+state 45
+	Type : ArrowType .  (13)
+
+	.  reduce 13
+
+
+state 46
+	ArrowType : AType . ARROW ArrowType  (16)
+	ArrowType : AType .  (17)
+
+	ARROW  shift 54
+	$end  reduce 17
+	LAMBDA  reduce 17
+	IF  reduce 17
+	TRUE  reduce 17
+	FALSE  reduce 17
+	SUCC  reduce 17
+	PRED  reduce 17
+	ISZERO  reduce 17
+	UCID  reduce 17
+	LCID  reduce 17
+	INTV  reduce 17
+	DOT  reduce 17
+	LPAREN  reduce 17
+	RPAREN  reduce 17
+	SEMI  reduce 17
+	DSEMI  reduce 17
+	EOF  reduce 17
+
+
+state 47
+	ATm : LPAREN Tm RPAREN .  (27)
+
+	.  reduce 27
+
+
+state 48
+	line : Command SEMI line .  (8)
+
+	.  reduce 8
+
+
+state 49
+	block : block SEMI Command .  (4)
+
+	.  reduce 4
+
+
+state 50
+	Tm : LAMBDA LCID COLON Type . DOT Tm  (20)
+
+	DOT  shift 55
+	.  error
+
+
+state 51
+	Tm : LAMBDA LCID DOT Tm .  (19)
+
+	.  reduce 19
+
+
+state 52
+	Tm : IF Tm THEN Tm . ELSE Tm  (21)
+
+	ELSE  shift 56
+	.  error
+
+
+state 53
+	AType : LPAREN Type . RPAREN  (14)
+
+	RPAREN  shift 57
+	.  error
+
+
+state 54
+	ArrowType : AType ARROW . ArrowType  (16)
+
+	BOOL  shift 42
+	LPAREN  shift 43
+	.  error
+
+	ArrowType  goto 58
+	AType  goto 46
+
+
+state 55
+	Tm : LAMBDA LCID COLON Type DOT . Tm  (20)
+
+	LAMBDA  shift 5
+	IF  shift 6
+	TRUE  shift 7
+	FALSE  shift 8
+	SUCC  shift 9
+	PRED  shift 10
+	ISZERO  shift 11
+	LCID  shift 25
+	INTV  shift 14
+	LPAREN  shift 15
+	.  error
+
+	Tm  goto 59
+	AppTm  goto 20
+	ATm  goto 21
+
+
+state 56
+	Tm : IF Tm THEN Tm ELSE . Tm  (21)
+
+	LAMBDA  shift 5
+	IF  shift 6
+	TRUE  shift 7
+	FALSE  shift 8
+	SUCC  shift 9
+	PRED  shift 10
+	ISZERO  shift 11
+	LCID  shift 25
+	INTV  shift 14
+	LPAREN  shift 15
+	.  error
+
+	Tm  goto 60
+	AppTm  goto 20
+	ATm  goto 21
+
+
+state 57
+	AType : LPAREN Type RPAREN .  (14)
+
+	.  reduce 14
+
+
+state 58
+	ArrowType : AType ARROW ArrowType .  (16)
+
+	.  reduce 16
+
+
+state 59
+	Tm : LAMBDA LCID COLON Type DOT Tm .  (20)
+
+	.  reduce 20
+
+
+state 60
+	Tm : IF Tm THEN Tm ELSE Tm .  (21)
+
+	.  reduce 21
+
+
+State 20 contains 5 shift/reduce conflicts.
+
+
+58 terminals, 13 nonterminals
+34 grammar rules, 61 states

@@ -43,21 +43,21 @@
     let text                =   Lexing.lexeme;;
     
     (* String *)
-    let stringBuffer        =   ref (String.create 2048);;
+    let stringBuffer        =   ref (Bytes.create 2048);;
     let stringEnd           =   ref 0;;
     let resetStr ()         =   stringEnd := 0;;
     let addStr chr          =   let x       = !stringEnd in 
                                 let buffer  = !stringBuffer in 
-                                if x = String.length buffer 
-                                    then    let newBuffer   = String.create (x*2) in 
-                                            String.blit buffer 0 newBuffer 0 x;
-                                            String.set newBuffer x chr;
+                                if x = Bytes.length buffer 
+                                    then    let newBuffer   = (Bytes.create (x*2)) in 
+                                            Bytes.blit buffer 0 newBuffer 0 x;
+                                            Bytes.set newBuffer x chr;
                                             stringBuffer    := newBuffer;
                                             stringEnd       := x+1
-                                    else    String.set buffer x chr;
+                                    else    Bytes.set buffer x chr;
                                             stringEnd       := x+1;;
-    let getStr ()           =   String.sub (!stringBuffer) 0 (!stringEnd) ;;
-    let extract_lineno yytxt offset     = ios(String.sub yytxt offset(String.length yytxt - offset));;
+    let getStr ()           =   Bytes.sub (!stringBuffer) 0 (!stringEnd) ;;
+    let extract_lineno yytxt offset     = ios(Bytes.to_string(Bytes.sub yytxt offset(Bytes.length yytxt - offset)));;
     let out_of_char x fi    =   if x>255 then err fi"Illegal Char" else Char.chr x ;;
 }
 
@@ -92,7 +92,7 @@ and comment             =   parse
     | "\n"                  { newline lexbuf; comment lexbuf                                                } 
 
 and string              =   parse
-    | '"'                   { Parser.STRINGV{i= !startLex; v=getStr()}                                      } 
+    | '"'                   { Parser.STRINGV{i= !startLex; v=Bytes.to_string(getStr())}                     } 
     | eof                   { err(!startLex) "String not terminated"                                        }
     | '\\'                  { addStr(escaped lexbuf)                    ; string lexbuf                     }
     | '\n'                  { addStr('\n') ; newline lexbuf             ; string lexbuf                     }
