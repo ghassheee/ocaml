@@ -68,7 +68,8 @@ g: $(OBJS) imain.cmo
 #######################
 # Build and test
 test: all
-	./f test.f
+	./f test.m
+	./f test2.m
 
 # Clean up the directory
 clean::

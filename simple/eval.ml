@@ -27,10 +27,10 @@ let rec eval1 ctx = function
     | TmIf(fi,t1,t2,t3)                         ->  let t1' = eval1 ctx t1 in TmIf(fi,t1',t2,t3)
     | TmSucc(fi,t1)                             ->  let t1' = eval1 ctx t1 in TmSucc(fi,t1')
     | TmPred(_,TmZero(_))                       ->  TmZero(dummyinfo)
-    | TmPred(_,TmSucc(_,n))when isnum ctx n     ->  n
+    | TmPred(_,TmSucc(_,n))                     ->  n
     | TmPred(fi,t1)                             ->  TmPred(fi, eval1 ctx t1)
     | TmIsZero(_,TmZero(_))                     ->  TmTrue(dummyinfo)
-    | TmIsZero(_,TmSucc(_,n))when isnum ctx n   ->  TmFalse(dummyinfo)
+    | TmIsZero(_,TmSucc(_,n))                   ->  TmFalse(dummyinfo)
     | TmIsZero(fi,t1)                           ->  let t1' = eval1 ctx t1 in TmIsZero(fi, t1')
     | _                                         ->  raise NoRuleApplies
 

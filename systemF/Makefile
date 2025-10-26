@@ -67,6 +67,7 @@ g: $(OBJS) imain.cmo
 # Build and test
 test: all
 	./f test.f
+	./f testF.f 
 
 # Clean up the directory
 clean::

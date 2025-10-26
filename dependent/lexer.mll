@@ -5,7 +5,7 @@ let reservedWords = [
   (* Keywords *)
     ("Sigma",   fun i -> Parser.SIGMA i);
     ("Pi",      fun i -> Parser.PI i); 
-    ("Π",      fun i -> Parser.PI i); 
+    ("Π",       fun i -> Parser.PI i); 
     ("Univ",    fun i -> Parser.UNIV i);
     ("letrec",  fun i -> Parser.LETREC i);
     ("where",   fun i -> Parser.WHERE i);
@@ -90,25 +90,25 @@ let create inFile stream    =   if not(Filename.is_implicit inFile)
 let newline lexbuf          =   incr lineno; start := (Lexing.lexeme_start lexbuf)
 let info    lexbuf          =   createInfo (!filename) (!lineno) (Lexing.lexeme_start lexbuf - !start)
 let text                    =   Lexing.lexeme
-let stringBuffer            =   ref (String.create 2048)
+let stringBuffer            =   ref (Bytes.create 2048)
 let stringEnd               =   ref 0
 let resetStr ()             =   stringEnd := 0
 let addStr ch               =
     let x                       =   !stringEnd in
     let buffer                  =   !stringBuffer in
-    if x=String.length buffer 
+    if x=Bytes.length buffer 
     then begin
-        let newBuffer   = String.create (x*2) in
-        String.blit buffer 0 newBuffer 0 x;
-        String.set newBuffer x ch;
+        let newBuffer   = Bytes.create (x*2) in
+        Bytes.blit buffer 0 newBuffer 0 x;
+        Bytes.set newBuffer x ch;
         stringBuffer    := newBuffer;
         stringEnd       := x+1
     end else begin
-        String.set buffer x ch;
+        Bytes.set buffer x ch;
         stringEnd       := x+1
     end
-let getStr ()                   = String.sub (!stringBuffer) 0 (!stringEnd)
-let extractLineno yytxt offset  = ios(String.sub yytxt offset(String.length yytxt-offset))
+let getStr ()                   = Bytes.sub (!stringBuffer) 0 (!stringEnd)
+let extractLineno yytxt offset  = ios(Bytes.to_string(Bytes.sub yytxt offset(Bytes.length yytxt-offset)))
 let out_of_char x fi            = if x>255 then err fi"Illegal Char" else Char.chr x 
 }
 
@@ -155,7 +155,7 @@ and comment             = parse
 | "\n"                      { newline lexbuf; comment lexbuf                        } 
 
 and string              = parse
-| '"'                       { Parser.STRINGV{i= !startLex; v=getStr()}              }
+| '"'                       { Parser.STRINGV{i= !startLex; v=Bytes.to_string(getStr())}}
 | eof                       { err(!startLex)"String not terminated"                 } 
 | '\\'                      { addStr(escaped lexbuf)              ; string lexbuf   } 
 | '\n'                      { addStr('\n') ; newline lexbuf       ; string lexbuf   } 

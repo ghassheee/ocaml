@@ -1,15 +1,2 @@
-
-true;
-if false then true else false;
-
-(\x:Bool->Bool.x false) (\x:Bool.x) ;
-(\x:Bool.x) true;
-iszero (pred (succ 2));
-
-
-let g = (\x:Nat.succ x) in g 1;
-
-X = Nat; 
-
-
-
+(\x:Bool.if x then 1 else true ) ;
+(\y:(Pi Bool (\x:Bool. if x then Bool else Nat)).y) (\x:Bool. if x then true else 1) ;

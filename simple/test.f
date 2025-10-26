@@ -5,6 +5,4 @@
 true;
 if false then true else false; 
 
-(\x:Bool->Bool. x false) (\x:Bool.x) ;
-(\x:Bool.x) true;
-iszero (pred (succ (succ 0)));
+iszero ((succ (succ 0)));

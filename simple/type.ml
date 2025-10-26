@@ -16,18 +16,20 @@ let rec typeof ctx   t      = pr"TYPEOF: ";pr_tm ctx t;pn();  match t with
     | TmApp(fi,t1,t2)           -> let tyT1 = typeof ctx t1 in
                                    let tyT2 = typeof ctx t2 in
                                    (match tyT1 with 
-        | TyArr(tyT11,tyT12)        ->  let e = e fi"TmApp: type mismatch" in 
-                                        if(=)tyT2 tyT11 then tyT12 else e  
+        | TyArr(tyT11,tyT12)        ->  if(=)tyT2 tyT11 then tyT12 else e fi "TmAPP: type mismatch"  
         | _                         ->  e fi "TmApp: arrow type expected" )
     | TmTrue(fi)                -> TyBool
     | TmFalse(fi)               -> TyBool
     | TmZero(fi)                -> TyNat
-    | TmSucc(fi,t)              ->  let e = e fi "succ expects 𝐍" in  
-                                    if (=)(typeof ctx t) TyNat then TyNat  else e 
-    | TmPred(fi,t)              ->  let e = e fi "succ expects 𝐍" in  
-                                    if (=)(typeof ctx t) TyNat then TyNat  else e 
-    | TmIsZero(fi,t)            ->  let e = e fi "iszero expects 𝐍" in 
-                                    if (=)(typeof ctx t) TyNat then TyBool else e 
+    | TmSucc(fi,t)              ->  (match typeof ctx t with 
+        | TyNat                     -> TyNat 
+        | _                         -> e fi "succ expects 𝐍")
+    | TmPred(fi,t)              ->  (match typeof ctx t with 
+        | TyNat                     -> TyNat 
+        | _                         -> e fi "pred expects 𝐍" )
+    | TmIsZero(fi,t)            ->  (match typeof ctx t with 
+        | TyNat                     -> TyBool
+        | _                         -> e fi "iszero expects 𝐍" )
     | TmIf(fi,t1,t2,t3)         ->  if (=)(typeof ctx t1)TyBool 
                                         then    let tyT2 = typeof ctx t2 in
                                                 if (=) tyT2 (typeof ctx t3) then tyT2 

@@ -63,7 +63,7 @@ let (symbolTable :(string,buildfun) Hashtbl.t)
                             =   Hashtbl.create 1024
 let _                       =   List.iter (fun (str,f) -> Hashtbl.add symbolTable str f) reservedWords
 
-let isInitialCapital str    = let s = Bytes.get str 0 in s >= 'A' && s <= 'Z'  
+let isInitialCapital str    = let s = String.get str 0 in s >= 'A' && s <= 'Z'  
 
 let createID i str          =   (* info -> string -> token *)
   try (Hashtbl.find symbolTable str) i
@@ -105,7 +105,7 @@ else begin
 let getStr ()               = Bytes.sub (!stringBuffer) 0 (!stringEnd)
 
 let extractLineno yytext offset =
-  int_of_string (Bytes.sub yytext offset (Bytes.length yytext - offset))
+  int_of_string (Bytes.to_string(Bytes.sub yytext offset (Bytes.length yytext - offset)))
 
 }
 
