@@ -10,12 +10,9 @@ let projx = (\r:{x:Nat,y:Nat,z:Nat}.r.x) in projx {x=2,y=4,z=1} ;
 
 (\x:String.x) "hoge";
 
-case <some=1> as <some:Nat,none:Unit> of <some=a> => succ a | <none=y> => 0; 
 
 let g = (\x:Nat.succ x) in g 1;
 
-let f = (\x : <some:Nat,none:Unit>. case x of <some=a> => succ a | <none=y> => 0) in 
-f (<some=1> as <some:Nat,none:Unit>) ; 
 
 X = Nat; 
 
@@ -38,11 +35,7 @@ ff = \ie:Nat->Bool.
 iseven = fix ff;
 
 
-
 iseven 7;
+iseven 4;
 
 
-a = ref 0;
-incr = ( \a:(Ref Nat). a := succ( !a ) );
-
-!a ;incr a ;!a ; 

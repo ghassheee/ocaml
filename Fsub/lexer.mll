@@ -91,7 +91,7 @@ let  symbolTable:hoge       =   Hashtbl.create 1024
 let _                       =   List.iter (fun(str,f)->Hashtbl.add symbolTable str f) reservedWords
 let fos                     =   float_of_string
 let ios                     =   int_of_string 
-let initCapital str         =   let s=Bytes.get str 0 in s>='A'&&s<='Z'  
+let initCapital str         =   let s=String.get str 0 in s>='A'&&s<='Z'  
 
 let createID i str          =   (* info -> string -> token *)
   try   Hashtbl.find symbolTable str i
@@ -126,8 +126,8 @@ let addStr ch               =
         Bytes.set buffer x ch;
         stringEnd       := x+1
     end
-let getStr ()                   = Bytes.sub (!stringBuffer) 0 (!stringEnd)
-let extractLineno yytxt offset  = ios(Bytes.sub yytxt offset(Bytes.length yytxt-offset))
+let getStr ()                   = Bytes.to_string(Bytes.sub (!stringBuffer) 0 (!stringEnd))
+let extractLineno yytxt offset  = ios(Bytes.to_string(Bytes.sub yytxt offset(Bytes.length yytxt-offset)))
 let out_of_char x fi            = if x>255 then error fi"Illegal Char" else Char.chr x 
 }
 
